@@ -38,6 +38,18 @@ public sealed class TrendRuleEvaluatorTests
             finding.Severity == FindingSeverity.Critical);
     }
 
+    [Fact]
+    public void MissingNvmeSpareDoesNotCreateDecreaseFinding()
+    {
+        var previous = CreateAtaPackage(DateTimeOffset.Parse("2026-01-01T00:00:00Z"));
+        var current = CreateAtaPackage(DateTimeOffset.Parse("2026-01-02T00:00:00Z"));
+        var comparison = LongitudinalComparer.Compare(previous, current);
+
+        var findings = TrendRuleEvaluator.Evaluate(previous, current, comparison);
+
+        Assert.DoesNotContain(findings, finding => finding.Code == "nvme.spare.decrease");
+    }
+
     private static AcquisitionPackage CreateNvmePackage(
         long unsafeShutdowns,
         long mediaErrors,
@@ -72,6 +84,35 @@ public sealed class TrendRuleEvaluatorTests
             0,
             false);
 
+        return new AcquisitionPackage(
+            1,
+            capturedAt.ToString("yyyyMMddTHHmmssZ"),
+            capturedAt,
+            command,
+            SmartctlResultAssessment.FromExitCode(0),
+            snapshot);
+    }
+
+    private static AcquisitionPackage CreateAtaPackage(DateTimeOffset capturedAt)
+    {
+        const string json = """
+        {
+          "device": { "name": "/dev/test", "type": "ata", "protocol": "ATA" },
+          "model_name": "SYNTHETIC ATA",
+          "serial_number": "SYNTHETIC-ATA-001",
+          "smart_status": { "passed": true },
+          "power_on_time": { "hours": 100 },
+          "temperature": { "current": 30 }
+        }
+        """;
+        var snapshot = SmartctlJsonParser.ParseSnapshot(json);
+        var command = new AcquisitionCommandMetadata(
+            "smartctl",
+            ["--all", "--json=c"],
+            capturedAt,
+            capturedAt.AddSeconds(1),
+            0,
+            false);
         return new AcquisitionPackage(
             1,
             capturedAt.ToString("yyyyMMddTHHmmssZ"),

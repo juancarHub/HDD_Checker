@@ -38,6 +38,19 @@ try
         return summary.IssueCount == 0 ? 0 : 1;
     }
 
+    if (parsed.Command.Equals("status", StringComparison.OrdinalIgnoreCase))
+    {
+        var index = new CaptureIndex(parsed.DatabasePath);
+        if (!File.Exists(index.DatabasePath))
+        {
+            Console.Error.WriteLine("El índice SQLite no existe. Ejecuta primero: hdd-checker index");
+            return 2;
+        }
+
+        PrintStatuses(await index.GetStatusesAsync(parsed.Device), index.DatabasePath);
+        return 0;
+    }
+
     if (parsed.Command.Equals("trend", StringComparison.OrdinalIgnoreCase))
     {
         if (string.IsNullOrWhiteSpace(parsed.Device))
@@ -483,6 +496,55 @@ static string FormatSeverity(FindingSeverity severity) => severity switch
     _ => severity.ToString(),
 };
 
+static void PrintStatuses(IReadOnlyList<DeviceStatus> statuses, string databasePath)
+{
+    Console.WriteLine("Estado actual de unidades");
+    Console.WriteLine("-------------------------");
+    Console.WriteLine($"Índice: {databasePath}");
+    Console.WriteLine($"Unidades: {statuses.Count}");
+    Console.WriteLine();
+
+    foreach (var status in statuses)
+    {
+        Console.WriteLine(status.ModelName ?? "Modelo no disponible");
+        Console.WriteLine($"  Identidad: {status.IdentityKey}");
+        Console.WriteLine($"  Protocolo: {status.Protocol ?? "no disponible"}");
+        Console.WriteLine($"  Capturas: {status.CaptureCount}");
+        Console.WriteLine($"  Última medición (UTC): {status.LatestCaptureUtc:O}");
+        Console.WriteLine($"  Adquisición: {FormatOutcomeText(status.AcquisitionOutcome)}");
+        Console.WriteLine($"  SMART aprobado: {FormatNullableBoolean(status.SmartPassed)}");
+        Console.WriteLine($"  Horas: {FormatValue(status.PowerOnHours)}");
+        Console.WriteLine($"  Temperatura: {FormatTemperature(status.TemperatureCelsius)}");
+        Console.WriteLine($"  Vida restante: {FormatPercent(status.RemainingLifePercent)}");
+        Console.WriteLine($"  Reserva NVMe: {FormatPercent(status.NvmeAvailableSparePercent)}");
+        Console.WriteLine($"  Reasignados: {FormatValue(status.ReallocatedSectors)}");
+        Console.WriteLine($"  Pendientes: {FormatValue(status.PendingSectors)}");
+        Console.WriteLine($"  Errores de medios NVMe: {FormatValue(status.NvmeMediaErrors)}");
+        if (status.HighestFindingSeverity is not null)
+        {
+            Console.WriteLine(
+                $"  Hallazgo reciente: [{FormatSeverity(status.HighestFindingSeverity.Value)}] " +
+                status.HighestFindingMessage);
+        }
+        else
+        {
+            Console.WriteLine("  Hallazgo reciente: ninguno");
+        }
+
+        Console.WriteLine();
+    }
+}
+
+static string FormatTemperature(int? value) => value is null ? "no disponible" : $"{value} °C";
+
+static string FormatOutcomeText(string value) => value switch
+{
+    "Complete" => "completa",
+    "Partial" => "parcial",
+    "Fatal" => "fallida",
+    _ => value,
+};
+
 static string FormatNullableBoolean(bool? value) => value switch
 {
     true => "sí",
@@ -505,6 +567,7 @@ static void PrintHelp()
     Console.WriteLine("  hdd-checker history [filtro] [--captures <carpeta>]");
     Console.WriteLine("  hdd-checker trend <modelo-o-identidad> [--captures <carpeta>]");
     Console.WriteLine("  hdd-checker index [--captures <carpeta>] [--database <archivo.db>]");
+    Console.WriteLine("  hdd-checker status [filtro] [--database <archivo.db>]");
     Console.WriteLine();
     Console.WriteLine("Solo se realizan consultas de información. No se ejecutan autodiagnósticos ni escrituras.");
 }

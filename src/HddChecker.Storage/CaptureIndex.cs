@@ -1,5 +1,7 @@
 using System.Globalization;
 using HddChecker.Core.Acquisition;
+using HddChecker.Core.Analysis;
+using HddChecker.Core.Longitudinal;
 using Microsoft.Data.Sqlite;
 
 namespace HddChecker.Storage;
@@ -30,6 +32,8 @@ public sealed class CaptureIndex(string databasePath)
             {
                 await UpsertCaptureAsync(connection, transaction, capture, cancellationToken);
             }
+
+            await ReplaceFindingsAsync(connection, transaction, device, cancellationToken);
         }
 
         transaction.Commit();
@@ -47,6 +51,70 @@ public sealed class CaptureIndex(string databasePath)
         return (
             await ExecuteCountAsync(connection, "devices", cancellationToken),
             await ExecuteCountAsync(connection, "captures", cancellationToken));
+    }
+
+    public async Task<IReadOnlyList<DeviceStatus>> GetStatusesAsync(
+        string? filter = null,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = CreateConnection(SqliteOpenMode.ReadOnly);
+        await connection.OpenAsync(cancellationToken);
+        const string sql = """
+        WITH ranked AS (
+            SELECT c.*,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY c.identity_key
+                       ORDER BY c.captured_at_utc DESC, c.capture_id DESC) AS row_number,
+                   COUNT(*) OVER (PARTITION BY c.identity_key) AS capture_count
+            FROM captures c
+        )
+        SELECT d.identity_key, d.model_name, d.protocol,
+               r.capture_count, r.captured_at_utc, r.smart_passed,
+               r.acquisition_outcome, r.power_on_hours, r.temperature_celsius,
+               r.remaining_life_percent, r.nvme_available_spare_percent,
+               r.reallocated_sectors, r.pending_sectors, r.nvme_media_errors,
+               f.severity, f.message
+        FROM devices d
+        JOIN ranked r ON r.identity_key = d.identity_key AND r.row_number = 1
+        LEFT JOIN findings f ON f.rowid = (
+            SELECT candidate.rowid
+            FROM findings candidate
+            WHERE candidate.identity_key = d.identity_key
+              AND candidate.current_capture_id = r.capture_id
+            ORDER BY candidate.severity DESC, candidate.code
+            LIMIT 1)
+        WHERE $filter IS NULL
+           OR d.identity_key LIKE '%' || $filter || '%' COLLATE NOCASE
+           OR d.model_name LIKE '%' || $filter || '%' COLLATE NOCASE
+        ORDER BY d.model_name, d.identity_key;
+        """;
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        Add(command, "$filter", string.IsNullOrWhiteSpace(filter) ? null : filter);
+        var statuses = new List<DeviceStatus>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            statuses.Add(new DeviceStatus(
+                reader.GetString(0),
+                GetNullableString(reader, 1),
+                GetNullableString(reader, 2),
+                reader.GetInt64(3),
+                DateTimeOffset.Parse(reader.GetString(4), CultureInfo.InvariantCulture),
+                GetNullableBoolean(reader, 5),
+                reader.GetString(6),
+                GetNullableInt64(reader, 7),
+                GetNullableInt32(reader, 8),
+                GetNullableInt32(reader, 9),
+                GetNullableInt32(reader, 10),
+                GetNullableInt64(reader, 11),
+                GetNullableInt64(reader, 12),
+                GetNullableInt64(reader, 13),
+                reader.IsDBNull(14) ? null : (FindingSeverity)reader.GetInt32(14),
+                GetNullableString(reader, 15)));
+        }
+
+        return statuses;
     }
 
     private static async Task InitializeSchemaAsync(
@@ -97,7 +165,19 @@ public sealed class CaptureIndex(string databasePath)
         );
         CREATE INDEX IF NOT EXISTS ix_captures_identity_time
             ON captures(identity_key, captured_at_utc);
-        PRAGMA user_version = 1;
+        CREATE TABLE IF NOT EXISTS findings (
+            identity_key TEXT NOT NULL,
+            previous_capture_id TEXT NOT NULL,
+            current_capture_id TEXT NOT NULL,
+            code TEXT NOT NULL,
+            severity INTEGER NOT NULL,
+            message TEXT NOT NULL,
+            PRIMARY KEY (identity_key, current_capture_id, code, message),
+            FOREIGN KEY (identity_key) REFERENCES devices(identity_key)
+        );
+        CREATE INDEX IF NOT EXISTS ix_findings_identity_capture
+            ON findings(identity_key, current_capture_id, severity DESC);
+        PRAGMA user_version = 2;
         """;
         await using var command = connection.CreateCommand();
         command.CommandText = sql;
@@ -222,6 +302,81 @@ public sealed class CaptureIndex(string databasePath)
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    private static async Task ReplaceFindingsAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        DeviceCaptureHistory device,
+        CancellationToken cancellationToken)
+    {
+        await using (var delete = connection.CreateCommand())
+        {
+            delete.Transaction = transaction;
+            delete.CommandText = "DELETE FROM findings WHERE identity_key = $identity;";
+            Add(delete, "$identity", device.Identity.Key);
+            await delete.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        var trend = LongitudinalTrend.FromHistory(device);
+        foreach (var capture in device.Captures)
+        {
+            foreach (var finding in SnapshotRuleEvaluator.Evaluate(capture.Package.Snapshot))
+            {
+                await InsertFindingAsync(
+                    connection,
+                    transaction,
+                    device.Identity.Key,
+                    capture.Package.CaptureId,
+                    capture.Package.CaptureId,
+                    finding,
+                    cancellationToken);
+            }
+        }
+
+        for (var index = 0; index < trend.Intervals.Count; index++)
+        {
+            var interval = trend.Intervals[index];
+            var previousCaptureId = device.Captures[index].Package.CaptureId;
+            var currentCaptureId = device.Captures[index + 1].Package.CaptureId;
+            foreach (var finding in interval.Findings)
+            {
+                await InsertFindingAsync(
+                    connection,
+                    transaction,
+                    device.Identity.Key,
+                    previousCaptureId,
+                    currentCaptureId,
+                    finding,
+                    cancellationToken);
+            }
+        }
+    }
+
+    private static async Task InsertFindingAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        string identityKey,
+        string previousCaptureId,
+        string currentCaptureId,
+        TrendFinding finding,
+        CancellationToken cancellationToken)
+    {
+        await using var insert = connection.CreateCommand();
+        insert.Transaction = transaction;
+        insert.CommandText = """
+            INSERT INTO findings (
+                identity_key, previous_capture_id, current_capture_id,
+                code, severity, message)
+            VALUES ($identity, $previous, $current, $code, $severity, $message);
+            """;
+        Add(insert, "$identity", identityKey);
+        Add(insert, "$previous", previousCaptureId);
+        Add(insert, "$current", currentCaptureId);
+        Add(insert, "$code", finding.Code);
+        Add(insert, "$severity", (int)finding.Severity);
+        Add(insert, "$message", finding.Message);
+        await insert.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     private static void Add(SqliteCommand command, string name, object? value) =>
         command.Parameters.AddWithValue(name, value ?? DBNull.Value);
 
@@ -248,4 +403,16 @@ public sealed class CaptureIndex(string databasePath)
         };
         return new SqliteConnection(builder.ToString());
     }
+
+    private static string? GetNullableString(SqliteDataReader reader, int ordinal) =>
+        reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);
+
+    private static long? GetNullableInt64(SqliteDataReader reader, int ordinal) =>
+        reader.IsDBNull(ordinal) ? null : reader.GetInt64(ordinal);
+
+    private static int? GetNullableInt32(SqliteDataReader reader, int ordinal) =>
+        reader.IsDBNull(ordinal) ? null : reader.GetInt32(ordinal);
+
+    private static bool? GetNullableBoolean(SqliteDataReader reader, int ordinal) =>
+        reader.IsDBNull(ordinal) ? null : reader.GetInt64(ordinal) != 0;
 }

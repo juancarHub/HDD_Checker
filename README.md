@@ -44,6 +44,7 @@ dotnet run --project src/HddChecker.Cli -- compare captures/<older-id> captures/
 dotnet run --project src/HddChecker.Cli -- history
 dotnet run --project src/HddChecker.Cli -- trend OM8PDP
 dotnet run --project src/HddChecker.Cli -- index
+dotnet run --project src/HddChecker.Cli -- status
 ```
 
 `inspect` displays a normalized card without writing files. `capture` creates a
@@ -79,6 +80,10 @@ they are not failure predictions.
 is idempotent: repeated runs update normalized fields without duplicating devices
 or captures. SQLite is a query index; the original JSON packages remain the
 source evidence.
+
+`status` reads the SQLite index without rescanning capture folders. It reports
+the latest measurement per unit and the highest-severity finding attached to
+the most recent interval. Run `index` after new captures before reading status.
 
 See [Architecture](docs/architecture.md) for the current component boundaries
 and persistence direction.

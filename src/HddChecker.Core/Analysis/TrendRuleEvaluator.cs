@@ -105,7 +105,7 @@ public static class TrendRuleEvaluator
         string message)
     {
         var metric = comparison.Metrics.First(item => item.Name == metricName);
-        if (metric.Delta >= 0)
+        if (metric.Delta is null || metric.Delta >= 0)
         {
             return;
         }
