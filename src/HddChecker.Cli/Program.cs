@@ -39,12 +39,29 @@ try
 
         var result = await runner.RunAsync(["--all", "--json=c", parsed.Device]);
         var assessment = SmartctlResultAssessment.FromExitCode(result.ExitCode);
+        if (assessment.Outcome is AcquisitionOutcome.Fatal)
+        {
+            Console.Error.WriteLine("No se pudo adquirir información SMART del dispositivo.");
+            foreach (var message in SmartctlJsonParser.ParseMessages(result.StandardOutput))
+            {
+                Console.Error.WriteLine($"smartctl: {message}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(result.StandardError))
+            {
+                Console.Error.WriteLine(result.StandardError);
+            }
+
+            PrintAssessment(assessment);
+            return 1;
+        }
+
         SmartDeviceSnapshot snapshot;
         try
         {
             snapshot = SmartctlJsonParser.ParseSnapshot(result.StandardOutput);
         }
-        catch when (assessment.Outcome is AcquisitionOutcome.Fatal)
+        catch
         {
             Console.Error.WriteLine("smartctl no devolvió una adquisición JSON utilizable.");
             PrintAssessment(assessment);

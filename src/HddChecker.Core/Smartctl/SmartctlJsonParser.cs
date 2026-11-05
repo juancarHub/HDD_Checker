@@ -4,6 +4,23 @@ namespace HddChecker.Core.Smartctl;
 
 public static class SmartctlJsonParser
 {
+    public static IReadOnlyList<string> ParseMessages(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        if (!document.RootElement.TryGetProperty("smartctl", out var smartctl) ||
+            !smartctl.TryGetProperty("messages", out var messages) ||
+            messages.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return messages.EnumerateArray()
+            .Select(message => ReadString(message, "string"))
+            .Where(message => !string.IsNullOrWhiteSpace(message))
+            .Select(message => message!)
+            .ToArray();
+    }
+
     public static IReadOnlyList<SmartctlDevice> ParseScan(string json)
     {
         using var document = JsonDocument.Parse(json);
