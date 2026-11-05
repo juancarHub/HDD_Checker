@@ -17,6 +17,7 @@ try
     {
         var result = await runner.RunAsync(["--scan-open", "--json=c"]);
         var devices = SmartctlJsonParser.ParseScan(result.StandardOutput);
+        var assessment = SmartctlResultAssessment.FromExitCode(result.ExitCode);
 
         Console.WriteLine($"Dispositivos detectados: {devices.Count}");
         foreach (var device in devices)
@@ -24,8 +25,8 @@ try
             Console.WriteLine($"- {device.Name} | tipo: {device.Type ?? "no disponible"} | protocolo: {device.Protocol ?? "no disponible"}");
         }
 
-        PrintExitStatus(result.ExitCode);
-        return result.ExitCode == 0 ? 0 : 1;
+        PrintAssessment(assessment);
+        return assessment.Outcome is AcquisitionOutcome.Fatal ? 1 : 0;
     }
 
     if (parsed.Command.Equals("inspect", StringComparison.OrdinalIgnoreCase))
@@ -37,14 +38,27 @@ try
         }
 
         var result = await runner.RunAsync(["--all", "--json=c", parsed.Device]);
-        Console.WriteLine(result.StandardOutput);
+        var assessment = SmartctlResultAssessment.FromExitCode(result.ExitCode);
+        SmartDeviceSnapshot snapshot;
+        try
+        {
+            snapshot = SmartctlJsonParser.ParseSnapshot(result.StandardOutput);
+        }
+        catch when (assessment.Outcome is AcquisitionOutcome.Fatal)
+        {
+            Console.Error.WriteLine("smartctl no devolvió una adquisición JSON utilizable.");
+            PrintAssessment(assessment);
+            return 1;
+        }
+
+        PrintSnapshot(snapshot);
         if (!string.IsNullOrWhiteSpace(result.StandardError))
         {
             Console.Error.WriteLine(result.StandardError);
         }
 
-        PrintExitStatus(result.ExitCode);
-        return result.ExitCode == 0 ? 0 : 1;
+        PrintAssessment(assessment);
+        return assessment.Outcome is AcquisitionOutcome.Fatal ? 1 : 0;
     }
 
     Console.Error.WriteLine($"Comando desconocido: {parsed.Command}");
@@ -90,10 +104,50 @@ static (string Command, string? Device, string SmartctlPath, bool ShowHelp) Pars
         false);
 }
 
-static void PrintExitStatus(int exitCode)
+static void PrintAssessment(SmartctlResultAssessment assessment)
 {
-    Console.WriteLine($"smartctl exit status: {exitCode} ({(SmartctlExitStatus)exitCode})");
+    Console.WriteLine();
+    Console.WriteLine($"Adquisición: {FormatOutcome(assessment.Outcome)}");
+    Console.WriteLine($"smartctl: {(int)assessment.ExitStatus} ({assessment.ExitStatus})");
+    Console.WriteLine($"Aviso de salud actual: {FormatBoolean(assessment.HasHealthWarning)}");
+    Console.WriteLine($"Incidencia histórica registrada: {FormatBoolean(assessment.HasHistoricalWarning)}");
 }
+
+static void PrintSnapshot(SmartDeviceSnapshot snapshot)
+{
+    Console.WriteLine("Ficha de adquisición SMART");
+    Console.WriteLine("---------------------------");
+    PrintField("Dispositivo", snapshot.DeviceName);
+    PrintField("Tipo", snapshot.DeviceType);
+    PrintField("Protocolo", snapshot.Protocol);
+    PrintField("Familia", snapshot.ModelFamily);
+    PrintField("Modelo", snapshot.ModelName);
+    PrintField("Serie", snapshot.SerialNumber);
+    PrintField("WWN", snapshot.WorldWideName);
+    PrintField("Capacidad (bytes)", snapshot.CapacityBytes);
+    PrintField("SMART aprobado", snapshot.SmartPassed is null ? null : FormatBoolean(snapshot.SmartPassed.Value));
+    PrintField("Horas de funcionamiento", snapshot.PowerOnHours);
+    PrintField("Ciclos de encendido", snapshot.PowerCycleCount);
+    PrintField("Temperatura (°C)", snapshot.TemperatureCelsius);
+    PrintField("Vida restante (%)", snapshot.RemainingLifePercent);
+    PrintField("Sectores reasignados", snapshot.ReallocatedSectors);
+    PrintField("Sectores pendientes", snapshot.PendingSectors);
+    PrintField("Sectores irrecuperables", snapshot.OfflineUncorrectableSectors);
+    PrintField("Errores no corregibles", snapshot.ReportedUncorrectableErrors);
+    PrintField("Errores CRC SATA", snapshot.SataCrcErrors);
+}
+
+static void PrintField(string label, object? value) =>
+    Console.WriteLine($"{label}: {value ?? "no disponible"}");
+
+static string FormatOutcome(AcquisitionOutcome outcome) => outcome switch
+{
+    AcquisitionOutcome.Complete => "completa",
+    AcquisitionOutcome.Partial => "parcial (alguna función SMART no es compatible)",
+    _ => "fallida",
+};
+
+static string FormatBoolean(bool value) => value ? "sí" : "no";
 
 static void PrintHelp()
 {
