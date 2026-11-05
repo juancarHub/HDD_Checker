@@ -96,8 +96,22 @@ public partial class App : Application
             }
         }
 
-        return Path.Combine(
+        var installedDataRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "HDD_Checker");
+        if (File.Exists(Path.Combine(installedDataRoot, "data", "hdd-checker.db")))
+        {
+            return installedDataRoot;
+        }
+
+        var developmentRoot = Path.GetFullPath(
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+        if (Directory.Exists(Path.Combine(developmentRoot, ".git")) &&
+            File.Exists(Path.Combine(developmentRoot, "data", "hdd-checker.db")))
+        {
+            return developmentRoot;
+        }
+
+        return installedDataRoot;
     }
 }
