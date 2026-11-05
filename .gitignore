@@ -1,0 +1,17 @@
+bin/
+obj/
+.vs/
+.vscode/
+.idea/
+artifacts/
+
+# Real SMART acquisitions may contain serial numbers and WWNs.
+data/
+captures/
+*.smart.json
+*.smart.stderr.txt
+
+# Local configuration.
+appsettings.local.json
+*.user
+*.suo
