@@ -2,6 +2,7 @@ using HddChecker.Core.Acquisition;
 using HddChecker.Core.Analysis;
 using HddChecker.Core.Longitudinal;
 using HddChecker.Core.Smartctl;
+using HddChecker.Storage;
 
 const string DefaultSmartctlPath = @"C:\Program Files\smartmontools\bin\smartctl.exe";
 
@@ -21,6 +22,20 @@ try
         var catalog = await CaptureCatalog.LoadAsync(parsed.CapturesRoot);
         PrintCatalog(catalog, parsed.Device);
         return catalog.Issues.Count == 0 ? 0 : 1;
+    }
+
+    if (parsed.Command.Equals("index", StringComparison.OrdinalIgnoreCase))
+    {
+        var catalog = await CaptureCatalog.LoadAsync(parsed.CapturesRoot);
+        var index = new CaptureIndex(parsed.DatabasePath);
+        var summary = await index.SynchronizeAsync(catalog);
+        var counts = await index.GetCountsAsync();
+        Console.WriteLine("Índice SQLite actualizado");
+        Console.WriteLine($"Base de datos: {index.DatabasePath}");
+        Console.WriteLine($"Unidades indexadas: {counts.Devices}");
+        Console.WriteLine($"Capturas indexadas: {counts.Captures}");
+        Console.WriteLine($"Incidencias de catálogo: {summary.IssueCount}");
+        return summary.IssueCount == 0 ? 0 : 1;
     }
 
     if (parsed.Command.Equals("trend", StringComparison.OrdinalIgnoreCase))
@@ -195,15 +210,17 @@ static (
     string? DeviceType,
     string SmartctlPath,
     string CapturesRoot,
+    string DatabasePath,
     bool ShowHelp) ParseArguments(string[] arguments)
 {
     if (arguments.Length == 0 || arguments.Any(argument => argument is "-h" or "--help"))
     {
-        return (string.Empty, null, null, null, DefaultSmartctlPath, "captures", true);
+        return (string.Empty, null, null, null, DefaultSmartctlPath, "captures", "data/hdd-checker.db", true);
     }
 
     var smartctlPath = DefaultSmartctlPath;
     var capturesRoot = "captures";
+    var databasePath = "data/hdd-checker.db";
     string? deviceType = null;
     var positional = new List<string>();
 
@@ -242,6 +259,17 @@ static (
             continue;
         }
 
+        if (arguments[index] == "--database")
+        {
+            if (++index >= arguments.Length)
+            {
+                throw new ArgumentException("--database requiere una ruta.");
+            }
+
+            databasePath = arguments[index];
+            continue;
+        }
+
         positional.Add(arguments[index]);
     }
 
@@ -252,6 +280,7 @@ static (
         deviceType,
         smartctlPath,
         capturesRoot,
+        databasePath,
         false);
 }
 
@@ -475,6 +504,7 @@ static void PrintHelp()
     Console.WriteLine("  hdd-checker compare <captura-anterior> <captura-actual>");
     Console.WriteLine("  hdd-checker history [filtro] [--captures <carpeta>]");
     Console.WriteLine("  hdd-checker trend <modelo-o-identidad> [--captures <carpeta>]");
+    Console.WriteLine("  hdd-checker index [--captures <carpeta>] [--database <archivo.db>]");
     Console.WriteLine();
     Console.WriteLine("Solo se realizan consultas de información. No se ejecutan autodiagnósticos ni escrituras.");
 }

@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/HddChecker.Core/HddChecker.Core.csproj" />
     <Project Path="src/HddChecker.Cli/HddChecker.Cli.csproj" />
+    <Project Path="src/HddChecker.Storage/HddChecker.Storage.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/HddChecker.Core.Tests/HddChecker.Core.Tests.csproj" />

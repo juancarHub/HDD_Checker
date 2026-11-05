@@ -43,6 +43,7 @@ dotnet run --project src/HddChecker.Cli -- show captures/<capture-id>
 dotnet run --project src/HddChecker.Cli -- compare captures/<older-id> captures/<newer-id>
 dotnet run --project src/HddChecker.Cli -- history
 dotnet run --project src/HddChecker.Cli -- trend OM8PDP
+dotnet run --project src/HddChecker.Cli -- index
 ```
 
 `inspect` displays a normalized card without writing files. `capture` creates a
@@ -73,6 +74,11 @@ instead of guessing when a filter matches multiple devices.
 Trend findings use deterministic rules with explicit reasons. They distinguish
 informational events, attention conditions, warnings and critical SMART changes;
 they are not failure predictions.
+
+`index` synchronizes the local catalog into `data/hdd-checker.db`. The operation
+is idempotent: repeated runs update normalized fields without duplicating devices
+or captures. SQLite is a query index; the original JSON packages remain the
+source evidence.
 
 See [Architecture](docs/architecture.md) for the current component boundaries
 and persistence direction.

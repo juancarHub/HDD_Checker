@@ -11,6 +11,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\HddChecker.Core\HddChecker.Core.csproj" />
+    <ProjectReference Include="..\..\src\HddChecker.Storage\HddChecker.Storage.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

@@ -4,5 +4,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\HddChecker.Core\HddChecker.Core.csproj" />
+    <ProjectReference Include="..\HddChecker.Storage\HddChecker.Storage.csproj" />
   </ItemGroup>
 </Project>
