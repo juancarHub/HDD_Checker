@@ -98,6 +98,15 @@ captured. Alternative paths that resolve to the same WWN or serial are reported
 as duplicate routes and stored only once per cycle. This orchestration is
 intended to be reused by the future service.
 
+`HddChecker.Service` is the first unattended-monitoring host. It runs one cycle
+when it starts and then waits for the configured interval before the next one;
+cycles never overlap. Its `appsettings.json` controls the smartctl path, command
+timeout, interval in minutes and optional data root. By default, service evidence
+and the SQLite index live under `%ProgramData%\HDD_Checker`, separate from the
+source tree and with no USB-specific assumptions. Service installation and
+distribution packaging are deliberately deferred until this host has been
+validated interactively.
+
 See [Architecture](docs/architecture.md) for the current component boundaries
 and persistence direction. See [Product vision](docs/product-vision.md) for the
 longitudinal differentiator, honest limits and working-name status.

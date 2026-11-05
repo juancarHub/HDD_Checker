@@ -29,13 +29,14 @@ Identity is selected in this order:
 Transient paths such as `/dev/sda` and `/dev/sdd` are never persistent device
 identifiers.
 
-## Future service boundary
+## Service boundary
 
-The acquisition engine is designed to be reused by a lightweight Windows
-service. Directly attached system drives are the primary production target.
-USB bridges remain a laboratory and secondary compatibility surface.
+The acquisition engine is reused by a lightweight Windows service host. It
+executes an immediate cycle followed by configurable, non-overlapping periodic
+cycles. Directly attached system drives are the primary production target. USB
+bridges remain a laboratory and secondary compatibility surface.
 
-The service will own privileged physical-drive access. User interfaces and
+The service owns privileged physical-drive access. User interfaces and
 analysis components should remain unprivileged and communicate through a
 restricted local interface. The acquisition boundary must accept only known
 read-only operations, not arbitrary smartctl arguments.
