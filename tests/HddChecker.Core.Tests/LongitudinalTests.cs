@@ -41,6 +41,32 @@ public sealed class LongitudinalTests
         Assert.Contains("unidades diferentes", exception.Message);
     }
 
+    [Fact]
+    public void RatesRequireComparableElapsedTime()
+    {
+        var previous = CreatePackage("SERIAL-A", null, 10, 30, 1, DateTimeOffset.Parse("2026-01-01T00:00:00Z"));
+        var current = CreatePackage("SERIAL-A", null, 12, 30, 4, DateTimeOffset.Parse("2026-01-03T00:00:00Z"));
+
+        var comparison = LongitudinalComparer.Compare(previous, current);
+        var crcRate = comparison.Rates.Single(rate => rate.MetricName == "Errores CRC SATA");
+
+        Assert.Equal(1.5, crcRate.PerPowerOnHour);
+        Assert.Equal(1.5, crcRate.PerCalendarDay);
+    }
+
+    [Fact]
+    public void ShortIntervalsAreNotExtrapolatedToCalendarDays()
+    {
+        var previous = CreatePackage("SERIAL-A", null, 10, 30, 1, DateTimeOffset.Parse("2026-01-01T00:00:00Z"));
+        var current = CreatePackage("SERIAL-A", null, 10, 30, 4, DateTimeOffset.Parse("2026-01-01T00:05:00Z"));
+
+        var comparison = LongitudinalComparer.Compare(previous, current);
+        var crcRate = comparison.Rates.Single(rate => rate.MetricName == "Errores CRC SATA");
+
+        Assert.Null(crcRate.PerPowerOnHour);
+        Assert.Null(crcRate.PerCalendarDay);
+    }
+
     private static AcquisitionPackage CreatePackage(
         string serial,
         string? wwn,

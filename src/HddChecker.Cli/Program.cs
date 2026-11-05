@@ -385,6 +385,8 @@ static void PrintComparison(LongitudinalComparison comparison)
             $"(Δ {delta}{metric.Unit})");
     }
 
+    PrintRates(comparison, string.Empty);
+
     Console.WriteLine();
     Console.WriteLine("Esta comparación describe cambios; todavía no asigna una puntuación de riesgo.");
 }
@@ -481,10 +483,42 @@ static void PrintTrend(LongitudinalTrend trend)
             Console.WriteLine($"  [{FormatSeverity(finding.Severity)}] {finding.Message}");
         }
 
+        PrintRates(comparison, "  ");
+
         Console.WriteLine();
     }
 
     Console.WriteLine("Los hallazgos aplican reglas deterministas y explicables; no son una predicción de fallo.");
+}
+
+static void PrintRates(LongitudinalComparison comparison, string indent)
+{
+    var rates = comparison.Rates
+        .Where(rate => rate.Delta != 0 &&
+                       (rate.PerPowerOnHour is not null || rate.PerCalendarDay is not null))
+        .ToArray();
+    if (rates.Length == 0)
+    {
+        return;
+    }
+
+    Console.WriteLine($"{indent}Tasas comparables:");
+    foreach (var rate in rates)
+    {
+        if (rate.PerPowerOnHour is not null)
+        {
+            Console.WriteLine(
+                $"{indent}- {rate.MetricName}: {rate.PerPowerOnHour.Value:0.####} " +
+                $"{rate.Unit}/hora de funcionamiento");
+        }
+
+        if (rate.PerCalendarDay is not null)
+        {
+            Console.WriteLine(
+                $"{indent}- {rate.MetricName}: {rate.PerCalendarDay.Value:0.####} " +
+                $"{rate.Unit}/día calendario");
+        }
+    }
 }
 
 static string FormatSeverity(FindingSeverity severity) => severity switch

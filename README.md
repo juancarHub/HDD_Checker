@@ -76,6 +76,11 @@ Trend findings use deterministic rules with explicit reasons. They distinguish
 informational events, attention conditions, warnings and critical SMART changes;
 they are not failure predictions.
 
+Rates are calculated per power-on hour when that counter advances. Calendar-day
+rates require intervals of at least 24 hours, preventing misleading extrapolation
+from short laboratory measurements. Acceleration is deferred until two comparable
+rates exist.
+
 `index` synchronizes the local catalog into `data/hdd-checker.db`. The operation
 is idempotent: repeated runs update normalized fields without duplicating devices
 or captures. SQLite is a query index; the original JSON packages remain the

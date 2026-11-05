@@ -4,6 +4,21 @@ namespace HddChecker.Core.Longitudinal;
 
 public static class LongitudinalComparer
 {
+    private static readonly HashSet<string> RateMetricNames =
+    [
+        "Ciclos de encendido",
+        "Ciclos de carga",
+        "Unidades NVMe leídas",
+        "Unidades NVMe escritas",
+        "Apagados inseguros NVMe",
+        "Errores de medios NVMe",
+        "Entradas de errores NVMe",
+        "Sectores reasignados",
+        "Sectores irrecuperables",
+        "Errores no corregibles",
+        "Errores CRC SATA",
+    ];
+
     public static LongitudinalComparison Compare(
         AcquisitionPackage first,
         AcquisitionPackage second)
@@ -41,11 +56,32 @@ public static class LongitudinalComparer
             MetricChange.Create("Errores CRC SATA", before.SataCrcErrors, after.SataCrcErrors),
         };
 
+        var calendarElapsed = current.CapturedAtUtc - previous.CapturedAtUtc;
+        var powerOnHoursElapsed = metrics
+            .First(metric => metric.Name == "Horas de funcionamiento")
+            .Delta;
+        var rates = metrics
+            .Where(metric =>
+                metric.Delta is not null &&
+                RateMetricNames.Contains(metric.Name))
+            .Select(metric => new MetricRate(
+                metric.Name,
+                metric.Delta!.Value,
+                powerOnHoursElapsed > 0
+                    ? metric.Delta.Value / (double)powerOnHoursElapsed.Value
+                    : null,
+                calendarElapsed >= TimeSpan.FromDays(1)
+                    ? metric.Delta.Value / calendarElapsed.TotalDays
+                    : null,
+                metric.Unit))
+            .ToArray();
+
         return new LongitudinalComparison(
             previousIdentity,
             previous.CapturedAtUtc,
             current.CapturedAtUtc,
-            current.CapturedAtUtc - previous.CapturedAtUtc,
-            metrics);
+            calendarElapsed,
+            metrics,
+            rates);
     }
 }
