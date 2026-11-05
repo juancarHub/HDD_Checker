@@ -15,6 +15,13 @@ try
 {
     var runner = new SmartctlRunner(parsed.SmartctlPath);
 
+    if (parsed.Command.Equals("history", StringComparison.OrdinalIgnoreCase))
+    {
+        var catalog = await CaptureCatalog.LoadAsync(parsed.CapturesRoot);
+        PrintCatalog(catalog, parsed.Device);
+        return catalog.Issues.Count == 0 ? 0 : 1;
+    }
+
     if (parsed.Command.Equals("show", StringComparison.OrdinalIgnoreCase))
     {
         if (string.IsNullOrWhiteSpace(parsed.Device))
@@ -308,6 +315,58 @@ static void PrintComparison(LongitudinalComparison comparison)
     Console.WriteLine("Esta comparación describe cambios; todavía no asigna una puntuación de riesgo.");
 }
 
+static void PrintCatalog(CaptureCatalog catalog, string? identityFilter)
+{
+    var devices = string.IsNullOrWhiteSpace(identityFilter)
+        ? catalog.Devices
+        : catalog.Devices
+            .Where(device =>
+                device.Identity.Key.Contains(identityFilter, StringComparison.OrdinalIgnoreCase) ||
+                (device.Latest.Package.Snapshot.ModelName?.Contains(
+                    identityFilter,
+                    StringComparison.OrdinalIgnoreCase) ?? false))
+            .ToArray();
+
+    Console.WriteLine("Catálogo local de capturas");
+    Console.WriteLine("--------------------------");
+    Console.WriteLine($"Unidades: {devices.Count}");
+    Console.WriteLine($"Capturas: {devices.Sum(device => device.Captures.Count)}");
+    Console.WriteLine();
+
+    foreach (var device in devices)
+    {
+        var snapshot = device.Latest.Package.Snapshot;
+        Console.WriteLine(snapshot.ModelName ?? "Modelo no disponible");
+        Console.WriteLine($"  Identidad: {device.Identity.Key}");
+        Console.WriteLine($"  Protocolo: {snapshot.Protocol ?? "no disponible"}");
+        Console.WriteLine($"  Capturas: {device.Captures.Count}");
+        Console.WriteLine($"  Primera: {device.First.Package.CapturedAtUtc:O}");
+        Console.WriteLine($"  Última: {device.Latest.Package.CapturedAtUtc:O}");
+        Console.WriteLine($"  SMART aprobado: {FormatNullableBoolean(snapshot.SmartPassed)}");
+        Console.WriteLine($"  Horas: {FormatValue(snapshot.PowerOnHours)}");
+        Console.WriteLine($"  Vida restante: {FormatPercent(snapshot.RemainingLifePercent)}");
+        Console.WriteLine();
+    }
+
+    if (catalog.Issues.Count > 0)
+    {
+        Console.WriteLine("Capturas que no pudieron indexarse:");
+        foreach (var issue in catalog.Issues)
+        {
+            Console.WriteLine($"- {issue.Path}: {issue.Message}");
+        }
+    }
+}
+
+static string FormatNullableBoolean(bool? value) => value switch
+{
+    true => "sí",
+    false => "no",
+    null => "no disponible",
+};
+
+static string FormatPercent(int? value) => value is null ? "no disponible" : $"{value} %";
+
 static void PrintHelp()
 {
     Console.WriteLine("HDD_Checker acquisition laboratory");
@@ -318,6 +377,7 @@ static void PrintHelp()
     Console.WriteLine("  hdd-checker capture <dispositivo> [--device-type <tipo>] [--captures <carpeta>] [--smartctl <ruta>]");
     Console.WriteLine("  hdd-checker show <carpeta-de-captura>");
     Console.WriteLine("  hdd-checker compare <captura-anterior> <captura-actual>");
+    Console.WriteLine("  hdd-checker history [filtro] [--captures <carpeta>]");
     Console.WriteLine();
     Console.WriteLine("Solo se realizan consultas de información. No se ejecutan autodiagnósticos ni escrituras.");
 }
