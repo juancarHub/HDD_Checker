@@ -11,15 +11,16 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <DockPanel>
+        <DockPanel LastChildFill="True">
+            <Button DockPanel.Dock="Right" Content="Recargar" Click="Refresh_Click"
+                    Width="112" Height="38" Margin="20,0,0,0" VerticalAlignment="Center"
+                    Background="{StaticResource Accent}" Foreground="#082F49"
+                    BorderThickness="0" FontWeight="SemiBold" />
             <StackPanel>
                 <TextBlock Text="Estado de almacenamiento" FontSize="28" FontWeight="SemiBold" />
                 <TextBlock Text="Supervisión preventiva y trayectoria SMART"
                            Foreground="{StaticResource SecondaryText}" Margin="0,5,0,0" />
             </StackPanel>
-            <Button DockPanel.Dock="Right" Content="Actualizar" Click="Refresh_Click"
-                    Padding="18,9" VerticalAlignment="Center" Background="{StaticResource Accent}"
-                    Foreground="#082F49" BorderThickness="0" FontWeight="SemiBold" />
         </DockPanel>
 
         <Grid Grid.Row="2">
