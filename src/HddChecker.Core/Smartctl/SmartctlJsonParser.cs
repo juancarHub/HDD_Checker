@@ -57,14 +57,34 @@ public static class SmartctlJsonParser
             ReadNestedBoolean(root, "smart_status", "passed"),
             ReadNestedInt64(root, "power_on_time", "hours"),
             ReadInt64(root, "power_cycle_count"),
+            ReadRawAttribute(attributes, 193),
             ReadNestedInt32(root, "temperature", "current"),
             ReadRemainingLife(root, attributes),
             ReadRawAttribute(attributes, 5),
             ReadRawAttribute(attributes, 197),
             ReadRawAttribute(attributes, 198),
             ReadRawAttribute(attributes, 187),
-            ReadRawAttribute(attributes, 199));
+            ReadRawAttribute(attributes, 199),
+            ReadThresholdEvents(attributes));
     }
+
+    private static IReadOnlyList<SmartAttributeThresholdEvent> ReadThresholdEvents(
+        IReadOnlyDictionary<int, JsonElement> attributes) =>
+        attributes.Values
+            .Where(attribute =>
+                attribute.TryGetProperty("when_failed", out var whenFailed) &&
+                whenFailed.ValueKind == JsonValueKind.String &&
+                !string.IsNullOrWhiteSpace(whenFailed.GetString()))
+            .Select(attribute => new SmartAttributeThresholdEvent(
+                attribute.GetProperty("id").GetInt32(),
+                ReadString(attribute, "name") ?? "Unknown_Attribute",
+                ReadInt32(attribute, "value"),
+                ReadInt32(attribute, "worst"),
+                ReadInt32(attribute, "thresh"),
+                ReadString(attribute, "when_failed")!,
+                ReadNestedString(attribute, "raw", "string")))
+            .OrderBy(attribute => attribute.Id)
+            .ToArray();
 
     private static Dictionary<int, JsonElement> ReadAtaAttributes(JsonElement root)
     {
@@ -158,6 +178,11 @@ public static class SmartctlJsonParser
 
     private static long? ReadInt64(JsonElement element, string propertyName) =>
         element.TryGetProperty(propertyName, out var property) && property.TryGetInt64(out var value)
+            ? value
+            : null;
+
+    private static int? ReadInt32(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var property) && property.TryGetInt32(out var value)
             ? value
             : null;
 

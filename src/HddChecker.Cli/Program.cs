@@ -14,6 +14,23 @@ try
 {
     var runner = new SmartctlRunner(parsed.SmartctlPath);
 
+    if (parsed.Command.Equals("show", StringComparison.OrdinalIgnoreCase))
+    {
+        if (string.IsNullOrWhiteSpace(parsed.Device))
+        {
+            Console.Error.WriteLine("Falta la ruta de la captura para show.");
+            return 2;
+        }
+
+        var package = await new AcquisitionPackageReader().ReadAsync(parsed.Device);
+        PrintSnapshot(package.Snapshot);
+        PrintAssessment(package.Assessment);
+        Console.WriteLine();
+        Console.WriteLine($"Captura: {package.CaptureId}");
+        Console.WriteLine($"Fecha UTC: {package.CapturedAtUtc:O}");
+        return 0;
+    }
+
     if (parsed.Command.Equals("scan", StringComparison.OrdinalIgnoreCase))
     {
         var result = await runner.RunAsync(["--scan-open", "--json=c"]);
@@ -204,6 +221,7 @@ static void PrintSnapshot(SmartDeviceSnapshot snapshot)
     PrintField("SMART aprobado", snapshot.SmartPassed is null ? null : FormatBoolean(snapshot.SmartPassed.Value));
     PrintField("Horas de funcionamiento", snapshot.PowerOnHours);
     PrintField("Ciclos de encendido", snapshot.PowerCycleCount);
+    PrintField("Ciclos de carga", snapshot.LoadCycleCount);
     PrintField("Temperatura (°C)", snapshot.TemperatureCelsius);
     PrintField("Vida restante (%)", snapshot.RemainingLifePercent);
     PrintField("Sectores reasignados", snapshot.ReallocatedSectors);
@@ -211,6 +229,21 @@ static void PrintSnapshot(SmartDeviceSnapshot snapshot)
     PrintField("Sectores irrecuperables", snapshot.OfflineUncorrectableSectors);
     PrintField("Errores no corregibles", snapshot.ReportedUncorrectableErrors);
     PrintField("Errores CRC SATA", snapshot.SataCrcErrors);
+
+    if (snapshot.ThresholdEvents is { Count: > 0 })
+    {
+        Console.WriteLine("Atributos que alcanzaron el umbral:");
+        foreach (var attribute in snapshot.ThresholdEvents)
+        {
+            var moment = attribute.WhenFailed.Equals("past", StringComparison.OrdinalIgnoreCase)
+                ? "histórico"
+                : "actual";
+            Console.WriteLine(
+                $"- {attribute.Id} {attribute.Name}: {moment}; " +
+                $"valor {FormatValue(attribute.Value)}, peor {FormatValue(attribute.Worst)}, " +
+                $"umbral {FormatValue(attribute.Threshold)}, RAW {attribute.RawValue ?? "no disponible"}");
+        }
+    }
 }
 
 static void PrintField(string label, object? value) =>
@@ -225,6 +258,8 @@ static string FormatOutcome(AcquisitionOutcome outcome) => outcome switch
 
 static string FormatBoolean(bool value) => value ? "sí" : "no";
 
+static string FormatValue(object? value) => value?.ToString() ?? "no disponible";
+
 static void PrintHelp()
 {
     Console.WriteLine("HDD_Checker acquisition laboratory");
@@ -233,6 +268,7 @@ static void PrintHelp()
     Console.WriteLine("  hdd-checker scan [--smartctl <ruta>]");
     Console.WriteLine("  hdd-checker inspect <dispositivo> [--device-type <tipo>] [--smartctl <ruta>]");
     Console.WriteLine("  hdd-checker capture <dispositivo> [--device-type <tipo>] [--captures <carpeta>] [--smartctl <ruta>]");
+    Console.WriteLine("  hdd-checker show <carpeta-de-captura>");
     Console.WriteLine();
     Console.WriteLine("Solo se realizan consultas de información. No se ejecutan autodiagnósticos ni escrituras.");
 }

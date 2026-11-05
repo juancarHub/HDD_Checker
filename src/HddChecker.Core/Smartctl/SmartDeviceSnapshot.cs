@@ -12,10 +12,12 @@ public sealed record SmartDeviceSnapshot(
     bool? SmartPassed,
     long? PowerOnHours,
     long? PowerCycleCount,
+    long? LoadCycleCount,
     int? TemperatureCelsius,
     int? RemainingLifePercent,
     long? ReallocatedSectors,
     long? PendingSectors,
     long? OfflineUncorrectableSectors,
     long? ReportedUncorrectableErrors,
-    long? SataCrcErrors);
+    long? SataCrcErrors,
+    IReadOnlyList<SmartAttributeThresholdEvent> ThresholdEvents);
