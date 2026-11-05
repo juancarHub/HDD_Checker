@@ -42,6 +42,7 @@ dotnet run --project src/HddChecker.Cli -- capture /dev/sdd --device-type usbpro
 dotnet run --project src/HddChecker.Cli -- show captures/<capture-id>
 dotnet run --project src/HddChecker.Cli -- compare captures/<older-id> captures/<newer-id>
 dotnet run --project src/HddChecker.Cli -- history
+dotnet run --project src/HddChecker.Cli -- trend OM8PDP
 ```
 
 `inspect` displays a normalized card without writing files. `capture` creates a
@@ -64,6 +65,10 @@ until the acquisition and normalization layers have broader real-device coverage
 `history` scans the local evidence directory, reinterprets every raw JSON file
 with the current normalizer and groups captures by WWN or serial number. Pass a
 model or identity fragment to filter the catalog.
+
+`trend` selects exactly one physical unit, orders all of its captures and shows
+only metric changes between consecutive measurements. It reports ambiguity
+instead of guessing when a filter matches multiple devices.
 
 See [Architecture](docs/architecture.md) for the current component boundaries
 and persistence direction.

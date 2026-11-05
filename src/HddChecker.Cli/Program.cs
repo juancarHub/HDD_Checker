@@ -22,6 +22,37 @@ try
         return catalog.Issues.Count == 0 ? 0 : 1;
     }
 
+    if (parsed.Command.Equals("trend", StringComparison.OrdinalIgnoreCase))
+    {
+        if (string.IsNullOrWhiteSpace(parsed.Device))
+        {
+            Console.Error.WriteLine("trend requiere un filtro de modelo o identidad.");
+            return 2;
+        }
+
+        var catalog = await CaptureCatalog.LoadAsync(parsed.CapturesRoot);
+        var matches = FilterDevices(catalog.Devices, parsed.Device);
+        if (matches.Count == 0)
+        {
+            Console.Error.WriteLine($"No se encontró ninguna unidad para: {parsed.Device}");
+            return 2;
+        }
+
+        if (matches.Count > 1)
+        {
+            Console.Error.WriteLine("El filtro coincide con varias unidades. Usa un modelo o identidad más específico:");
+            foreach (var match in matches)
+            {
+                Console.Error.WriteLine($"- {match.Latest.Package.Snapshot.ModelName}: {match.Identity.Key}");
+            }
+
+            return 2;
+        }
+
+        PrintTrend(LongitudinalTrend.FromHistory(matches[0]));
+        return 0;
+    }
+
     if (parsed.Command.Equals("show", StringComparison.OrdinalIgnoreCase))
     {
         if (string.IsNullOrWhiteSpace(parsed.Device))
@@ -319,13 +350,7 @@ static void PrintCatalog(CaptureCatalog catalog, string? identityFilter)
 {
     var devices = string.IsNullOrWhiteSpace(identityFilter)
         ? catalog.Devices
-        : catalog.Devices
-            .Where(device =>
-                device.Identity.Key.Contains(identityFilter, StringComparison.OrdinalIgnoreCase) ||
-                (device.Latest.Package.Snapshot.ModelName?.Contains(
-                    identityFilter,
-                    StringComparison.OrdinalIgnoreCase) ?? false))
-            .ToArray();
+        : FilterDevices(catalog.Devices, identityFilter);
 
     Console.WriteLine("Catálogo local de capturas");
     Console.WriteLine("--------------------------");
@@ -358,6 +383,61 @@ static void PrintCatalog(CaptureCatalog catalog, string? identityFilter)
     }
 }
 
+static IReadOnlyList<DeviceCaptureHistory> FilterDevices(
+    IReadOnlyList<DeviceCaptureHistory> devices,
+    string filter) =>
+    devices
+        .Where(device =>
+            device.Identity.Key.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+            (device.Latest.Package.Snapshot.ModelName?.Contains(
+                filter,
+                StringComparison.OrdinalIgnoreCase) ?? false))
+        .ToArray();
+
+static void PrintTrend(LongitudinalTrend trend)
+{
+    var snapshot = trend.Device.Latest.Package.Snapshot;
+    Console.WriteLine("Trayectoria longitudinal");
+    Console.WriteLine("-----------------------");
+    Console.WriteLine($"Modelo: {snapshot.ModelName ?? "no disponible"}");
+    Console.WriteLine($"Identidad: {trend.Device.Identity.Key}");
+    Console.WriteLine($"Capturas: {trend.Device.Captures.Count}");
+    Console.WriteLine($"Intervalos: {trend.Intervals.Count}");
+    Console.WriteLine();
+
+    if (trend.Intervals.Count == 0)
+    {
+        Console.WriteLine("Todavía no existe una segunda captura para calcular trayectoria.");
+        return;
+    }
+
+    foreach (var interval in trend.Intervals)
+    {
+        Console.WriteLine($"{interval.PreviousCaptureUtc:O} → {interval.CurrentCaptureUtc:O}");
+        Console.WriteLine($"  Tiempo calendario: {interval.CalendarElapsed}");
+
+        var changes = interval.Metrics.Where(metric => metric.HasChanged).ToArray();
+        if (changes.Length == 0)
+        {
+            Console.WriteLine("  Sin cambios en los indicadores comparables.");
+            Console.WriteLine();
+            continue;
+        }
+
+        foreach (var metric in changes)
+        {
+            var delta = metric.Delta >= 0 ? $"+{metric.Delta}" : metric.Delta.ToString();
+            Console.WriteLine(
+                $"  {metric.Name}: {metric.Previous} → {metric.Current} " +
+                $"(Δ {delta}{metric.Unit})");
+        }
+
+        Console.WriteLine();
+    }
+
+    Console.WriteLine("La trayectoria muestra cambios observados; todavía no asigna riesgo ni causalidad automáticamente.");
+}
+
 static string FormatNullableBoolean(bool? value) => value switch
 {
     true => "sí",
@@ -378,6 +458,7 @@ static void PrintHelp()
     Console.WriteLine("  hdd-checker show <carpeta-de-captura>");
     Console.WriteLine("  hdd-checker compare <captura-anterior> <captura-actual>");
     Console.WriteLine("  hdd-checker history [filtro] [--captures <carpeta>]");
+    Console.WriteLine("  hdd-checker trend <modelo-o-identidad> [--captures <carpeta>]");
     Console.WriteLine();
     Console.WriteLine("Solo se realizan consultas de información. No se ejecutan autodiagnósticos ni escrituras.");
 }
