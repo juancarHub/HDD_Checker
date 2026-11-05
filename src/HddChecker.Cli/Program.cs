@@ -39,7 +39,18 @@ try
             return 2;
         }
 
-        var result = await runner.RunAsync(["--all", "--json=c", parsed.Device]);
+        var inspectArguments = new List<string>();
+        if (!string.IsNullOrWhiteSpace(parsed.DeviceType))
+        {
+            inspectArguments.Add("--device");
+            inspectArguments.Add(parsed.DeviceType);
+        }
+
+        inspectArguments.Add("--all");
+        inspectArguments.Add("--json=c");
+        inspectArguments.Add(parsed.Device);
+
+        var result = await runner.RunAsync(inspectArguments);
         var assessment = SmartctlResultAssessment.FromExitCode(result.ExitCode);
         if (assessment.Outcome is AcquisitionOutcome.Fatal)
         {
@@ -104,15 +115,22 @@ catch (Exception exception)
     return 1;
 }
 
-static (string Command, string? Device, string SmartctlPath, string CapturesRoot, bool ShowHelp) ParseArguments(string[] arguments)
+static (
+    string Command,
+    string? Device,
+    string? DeviceType,
+    string SmartctlPath,
+    string CapturesRoot,
+    bool ShowHelp) ParseArguments(string[] arguments)
 {
     if (arguments.Length == 0 || arguments.Any(argument => argument is "-h" or "--help"))
     {
-        return (string.Empty, null, DefaultSmartctlPath, "captures", true);
+        return (string.Empty, null, null, DefaultSmartctlPath, "captures", true);
     }
 
     var smartctlPath = DefaultSmartctlPath;
     var capturesRoot = "captures";
+    string? deviceType = null;
     var positional = new List<string>();
 
     for (var index = 0; index < arguments.Length; index++)
@@ -139,12 +157,24 @@ static (string Command, string? Device, string SmartctlPath, string CapturesRoot
             continue;
         }
 
+        if (arguments[index] == "--device-type")
+        {
+            if (++index >= arguments.Length)
+            {
+                throw new ArgumentException("--device-type requiere un tipo de smartctl.");
+            }
+
+            deviceType = arguments[index];
+            continue;
+        }
+
         positional.Add(arguments[index]);
     }
 
     return (
         positional.ElementAtOrDefault(0) ?? string.Empty,
         positional.ElementAtOrDefault(1),
+        deviceType,
         smartctlPath,
         capturesRoot,
         false);
@@ -201,8 +231,8 @@ static void PrintHelp()
     Console.WriteLine();
     Console.WriteLine("Uso:");
     Console.WriteLine("  hdd-checker scan [--smartctl <ruta>]");
-    Console.WriteLine("  hdd-checker inspect <dispositivo> [--smartctl <ruta>]");
-    Console.WriteLine("  hdd-checker capture <dispositivo> [--captures <carpeta>] [--smartctl <ruta>]");
+    Console.WriteLine("  hdd-checker inspect <dispositivo> [--device-type <tipo>] [--smartctl <ruta>]");
+    Console.WriteLine("  hdd-checker capture <dispositivo> [--device-type <tipo>] [--captures <carpeta>] [--smartctl <ruta>]");
     Console.WriteLine();
     Console.WriteLine("Solo se realizan consultas de información. No se ejecutan autodiagnósticos ni escrituras.");
 }

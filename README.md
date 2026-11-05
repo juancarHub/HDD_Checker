@@ -38,6 +38,7 @@ Override it with `--smartctl <path>` when necessary.
 dotnet run --project src/HddChecker.Cli -- scan
 dotnet run --project src/HddChecker.Cli -- inspect /dev/sda
 dotnet run --project src/HddChecker.Cli -- capture /dev/sda
+dotnet run --project src/HddChecker.Cli -- capture /dev/sdd --device-type usbprolific
 ```
 
 `inspect` displays a normalized card without writing files. `capture` creates a
@@ -51,6 +52,10 @@ local evidence package containing:
 Real acquisition packages remain in the ignored `captures/` directory. Choose a
 different local directory with `--captures <path>`. Only explicitly anonymized
 samples may be committed in the future.
+
+USB bridges may require the smartctl device type reported by `scan`. Pass it to
+`inspect` or `capture` with `--device-type <type>`. Opening some physical drives
+on Windows also requires an Administrator terminal.
 
 ## Safety
 
