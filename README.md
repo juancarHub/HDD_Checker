@@ -107,6 +107,13 @@ source tree and with no USB-specific assumptions. Service installation and
 distribution packaging are deliberately deferred until this host has been
 validated interactively.
 
+`HddChecker.App` is the initial Windows desktop console. It reads the service's
+SQLite index without requiring physical-drive privileges and presents the
+current units and their latest normalized state. It is single-instance: a
+second launch activates the existing window instead of creating another one.
+During development, pass `--data-root <path>` to inspect an alternative local
+catalog; the installed application will use the service data under ProgramData.
+
 See [Architecture](docs/architecture.md) for the current component boundaries
 and persistence direction. See [Product vision](docs/product-vision.md) for the
 longitudinal differentiator, honest limits and working-name status.

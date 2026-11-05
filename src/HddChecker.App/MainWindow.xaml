@@ -1,0 +1,85 @@
+<Window x:Class="HddChecker.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="HDD Checker" Width="1080" Height="680" MinWidth="850" MinHeight="540"
+        Background="{StaticResource WindowBackground}" Foreground="{StaticResource PrimaryText}"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="20" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <DockPanel>
+            <StackPanel>
+                <TextBlock Text="Estado de almacenamiento" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock Text="Supervisión preventiva y trayectoria SMART"
+                           Foreground="{StaticResource SecondaryText}" Margin="0,5,0,0" />
+            </StackPanel>
+            <Button DockPanel.Dock="Right" Content="Actualizar" Click="Refresh_Click"
+                    Padding="18,9" VerticalAlignment="Center" Background="{StaticResource Accent}"
+                    Foreground="#082F49" BorderThickness="0" FontWeight="SemiBold" />
+        </DockPanel>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="340" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Background="{StaticResource PanelBackground}" CornerRadius="12" Padding="12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Unidades actuales" Margin="8,5,8,12" FontSize="15" FontWeight="SemiBold" />
+                    <ListBox x:Name="DevicesList" Grid.Row="1" SelectionChanged="DevicesList_SelectionChanged"
+                             Background="Transparent" BorderThickness="0" Foreground="{StaticResource PrimaryText}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="8,9" Width="280">
+                                    <TextBlock Text="{Binding ModelName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Summary}" Foreground="{StaticResource SecondaryText}"
+                                               FontSize="12" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Background="{StaticResource PanelBackground}" CornerRadius="12" Padding="28">
+                <Grid>
+                    <TextBlock x:Name="EmptyMessage" Text="No hay datos de supervisión disponibles todavía."
+                               Foreground="{StaticResource SecondaryText}" FontSize="16"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+                    <StackPanel x:Name="DetailsPanel" Visibility="Collapsed">
+                        <TextBlock x:Name="ModelText" FontSize="24" FontWeight="SemiBold" />
+                        <TextBlock x:Name="IdentityText" Foreground="{StaticResource SecondaryText}" Margin="0,6,0,24" />
+                        <UniformGrid Columns="2" Rows="4">
+                            <StackPanel Margin="0,0,24,20"><TextBlock Text="ESTADO" Foreground="{StaticResource SecondaryText}" FontSize="11"/><TextBlock x:Name="HealthText" FontSize="18" Margin="0,5,0,0"/></StackPanel>
+                            <StackPanel Margin="0,0,24,20"><TextBlock Text="ÚLTIMA SUPERVISIÓN" Foreground="{StaticResource SecondaryText}" FontSize="11"/><TextBlock x:Name="LatestText" FontSize="18" Margin="0,5,0,0"/></StackPanel>
+                            <StackPanel Margin="0,0,24,20"><TextBlock Text="TEMPERATURA" Foreground="{StaticResource SecondaryText}" FontSize="11"/><TextBlock x:Name="TemperatureText" FontSize="18" Margin="0,5,0,0"/></StackPanel>
+                            <StackPanel Margin="0,0,24,20"><TextBlock Text="HORAS DE USO" Foreground="{StaticResource SecondaryText}" FontSize="11"/><TextBlock x:Name="HoursText" FontSize="18" Margin="0,5,0,0"/></StackPanel>
+                            <StackPanel Margin="0,0,24,20"><TextBlock Text="VIDA RESTANTE" Foreground="{StaticResource SecondaryText}" FontSize="11"/><TextBlock x:Name="LifeText" FontSize="18" Margin="0,5,0,0"/></StackPanel>
+                            <StackPanel Margin="0,0,24,20"><TextBlock Text="CAPTURAS" Foreground="{StaticResource SecondaryText}" FontSize="11"/><TextBlock x:Name="CapturesText" FontSize="18" Margin="0,5,0,0"/></StackPanel>
+                            <StackPanel Margin="0,0,24,20"><TextBlock Text="REASIGNADOS" Foreground="{StaticResource SecondaryText}" FontSize="11"/><TextBlock x:Name="ReallocatedText" FontSize="18" Margin="0,5,0,0"/></StackPanel>
+                            <StackPanel Margin="0,0,24,20"><TextBlock Text="PENDIENTES" Foreground="{StaticResource SecondaryText}" FontSize="11"/><TextBlock x:Name="PendingText" FontSize="18" Margin="0,5,0,0"/></StackPanel>
+                        </UniformGrid>
+                        <Border Background="#111827" CornerRadius="8" Padding="16" Margin="0,10,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Evaluación" FontWeight="SemiBold" />
+                                <TextBlock x:Name="FindingText" Foreground="{StaticResource SecondaryText}"
+                                           TextWrapping="Wrap" Margin="0,7,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

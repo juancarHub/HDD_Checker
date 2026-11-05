@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/HddChecker.App/HddChecker.App.csproj" />
     <Project Path="src/HddChecker.Core/HddChecker.Core.csproj" />
     <Project Path="src/HddChecker.Cli/HddChecker.Cli.csproj" />
     <Project Path="src/HddChecker.Service/HddChecker.Service.csproj" />
