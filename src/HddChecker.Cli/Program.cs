@@ -1,3 +1,4 @@
+using HddChecker.Core.Acquisition;
 using HddChecker.Core.Smartctl;
 
 const string DefaultSmartctlPath = @"C:\Program Files\smartmontools\bin\smartctl.exe";
@@ -29,7 +30,8 @@ try
         return assessment.Outcome is AcquisitionOutcome.Fatal ? 1 : 0;
     }
 
-    if (parsed.Command.Equals("inspect", StringComparison.OrdinalIgnoreCase))
+    if (parsed.Command.Equals("inspect", StringComparison.OrdinalIgnoreCase) ||
+        parsed.Command.Equals("capture", StringComparison.OrdinalIgnoreCase))
     {
         if (string.IsNullOrWhiteSpace(parsed.Device))
         {
@@ -75,6 +77,20 @@ try
         }
 
         PrintAssessment(assessment);
+
+        if (parsed.Command.Equals("capture", StringComparison.OrdinalIgnoreCase))
+        {
+            var writer = new AcquisitionPackageWriter();
+            var captureDirectory = await writer.WriteAsync(
+                parsed.CapturesRoot,
+                result,
+                assessment,
+                snapshot);
+            Console.WriteLine();
+            Console.WriteLine($"Evidencia guardada localmente en: {captureDirectory}");
+            Console.WriteLine("Esta carpeta está excluida de Git.");
+        }
+
         return assessment.Outcome is AcquisitionOutcome.Fatal ? 1 : 0;
     }
 
@@ -88,14 +104,15 @@ catch (Exception exception)
     return 1;
 }
 
-static (string Command, string? Device, string SmartctlPath, bool ShowHelp) ParseArguments(string[] arguments)
+static (string Command, string? Device, string SmartctlPath, string CapturesRoot, bool ShowHelp) ParseArguments(string[] arguments)
 {
     if (arguments.Length == 0 || arguments.Any(argument => argument is "-h" or "--help"))
     {
-        return (string.Empty, null, DefaultSmartctlPath, true);
+        return (string.Empty, null, DefaultSmartctlPath, "captures", true);
     }
 
     var smartctlPath = DefaultSmartctlPath;
+    var capturesRoot = "captures";
     var positional = new List<string>();
 
     for (var index = 0; index < arguments.Length; index++)
@@ -111,6 +128,17 @@ static (string Command, string? Device, string SmartctlPath, bool ShowHelp) Pars
             continue;
         }
 
+        if (arguments[index] == "--captures")
+        {
+            if (++index >= arguments.Length)
+            {
+                throw new ArgumentException("--captures requiere una carpeta.");
+            }
+
+            capturesRoot = arguments[index];
+            continue;
+        }
+
         positional.Add(arguments[index]);
     }
 
@@ -118,6 +146,7 @@ static (string Command, string? Device, string SmartctlPath, bool ShowHelp) Pars
         positional.ElementAtOrDefault(0) ?? string.Empty,
         positional.ElementAtOrDefault(1),
         smartctlPath,
+        capturesRoot,
         false);
 }
 
@@ -173,6 +202,7 @@ static void PrintHelp()
     Console.WriteLine("Uso:");
     Console.WriteLine("  hdd-checker scan [--smartctl <ruta>]");
     Console.WriteLine("  hdd-checker inspect <dispositivo> [--smartctl <ruta>]");
+    Console.WriteLine("  hdd-checker capture <dispositivo> [--captures <carpeta>] [--smartctl <ruta>]");
     Console.WriteLine();
     Console.WriteLine("Solo se realizan consultas de información. No se ejecutan autodiagnósticos ni escrituras.");
 }

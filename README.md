@@ -37,10 +37,20 @@ Override it with `--smartctl <path>` when necessary.
 ```powershell
 dotnet run --project src/HddChecker.Cli -- scan
 dotnet run --project src/HddChecker.Cli -- inspect /dev/sda
+dotnet run --project src/HddChecker.Cli -- capture /dev/sda
 ```
 
-Real acquisition files must remain in the ignored `captures/` directory. Only
-explicitly anonymized samples may be committed in the future.
+`inspect` displays a normalized card without writing files. `capture` creates a
+local evidence package containing:
+
+- `smartctl.json`: the untouched JSON returned by smartctl;
+- `acquisition.json`: command metadata, exit-status assessment and normalized
+  snapshot;
+- `smartctl.stderr.txt`: standard error, only when it is not empty.
+
+Real acquisition packages remain in the ignored `captures/` directory. Choose a
+different local directory with `--captures <path>`. Only explicitly anonymized
+samples may be committed in the future.
 
 ## Safety
 
