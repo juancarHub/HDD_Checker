@@ -70,6 +70,10 @@ model or identity fragment to filter the catalog.
 only metric changes between consecutive measurements. It reports ambiguity
 instead of guessing when a filter matches multiple devices.
 
+Trend findings use deterministic rules with explicit reasons. They distinguish
+informational events, attention conditions, warnings and critical SMART changes;
+they are not failure predictions.
+
 See [Architecture](docs/architecture.md) for the current component boundaries
 and persistence direction.
 

@@ -1,4 +1,5 @@
 using HddChecker.Core.Acquisition;
+using HddChecker.Core.Analysis;
 using HddChecker.Core.Longitudinal;
 using HddChecker.Core.Smartctl;
 
@@ -413,10 +414,11 @@ static void PrintTrend(LongitudinalTrend trend)
 
     foreach (var interval in trend.Intervals)
     {
-        Console.WriteLine($"{interval.PreviousCaptureUtc:O} → {interval.CurrentCaptureUtc:O}");
-        Console.WriteLine($"  Tiempo calendario: {interval.CalendarElapsed}");
+        var comparison = interval.Comparison;
+        Console.WriteLine($"{comparison.PreviousCaptureUtc:O} → {comparison.CurrentCaptureUtc:O}");
+        Console.WriteLine($"  Tiempo calendario: {comparison.CalendarElapsed}");
 
-        var changes = interval.Metrics.Where(metric => metric.HasChanged).ToArray();
+        var changes = comparison.Metrics.Where(metric => metric.HasChanged).ToArray();
         if (changes.Length == 0)
         {
             Console.WriteLine("  Sin cambios en los indicadores comparables.");
@@ -432,11 +434,25 @@ static void PrintTrend(LongitudinalTrend trend)
                 $"(Δ {delta}{metric.Unit})");
         }
 
+        foreach (var finding in interval.Findings)
+        {
+            Console.WriteLine($"  [{FormatSeverity(finding.Severity)}] {finding.Message}");
+        }
+
         Console.WriteLine();
     }
 
-    Console.WriteLine("La trayectoria muestra cambios observados; todavía no asigna riesgo ni causalidad automáticamente.");
+    Console.WriteLine("Los hallazgos aplican reglas deterministas y explicables; no son una predicción de fallo.");
 }
+
+static string FormatSeverity(FindingSeverity severity) => severity switch
+{
+    FindingSeverity.Information => "informativo",
+    FindingSeverity.Attention => "atención",
+    FindingSeverity.Warning => "advertencia",
+    FindingSeverity.Critical => "crítico",
+    _ => severity.ToString(),
+};
 
 static string FormatNullableBoolean(bool? value) => value switch
 {
