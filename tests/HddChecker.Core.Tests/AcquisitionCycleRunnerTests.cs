@@ -16,12 +16,14 @@ public sealed class AcquisitionCycleRunnerTests
             var cycle = await new AcquisitionCycleRunner(runner, new AcquisitionPackageWriter())
                 .RunAsync(temporaryDirectory);
 
-            Assert.Equal(2, cycle.DiscoveredCount);
+            Assert.Equal(3, cycle.DiscoveredCount);
             Assert.Equal(1, cycle.CapturedCount);
             Assert.Equal(1, cycle.FailedCount);
+            Assert.Equal(1, cycle.DuplicateRouteCount);
             Assert.True(cycle.Attempts[0].Succeeded);
             Assert.False(cycle.Attempts[1].Succeeded);
             Assert.Contains("inaccesible", cycle.Attempts[1].ErrorMessage);
+            Assert.Equal(DeviceAcquisitionStatus.DuplicateRoute, cycle.Attempts[2].Status);
             Assert.Single(Directory.EnumerateFiles(
                 temporaryDirectory,
                 "acquisition.json",
@@ -46,12 +48,13 @@ public sealed class AcquisitionCycleRunnerTests
                 return Task.FromResult(Result(values, 0, """
                     { "devices": [
                       { "name": "/dev/good", "type": "ata", "protocol": "ATA" },
-                      { "name": "/dev/bad", "type": "scsi", "protocol": "SCSI" }
+                      { "name": "/dev/bad", "type": "scsi", "protocol": "SCSI" },
+                      { "name": "/dev/good-alias", "type": "ata", "protocol": "ATA" }
                     ] }
                     """, now));
             }
 
-            if (values.Contains("/dev/good"))
+            if (values.Contains("/dev/good") || values.Contains("/dev/good-alias"))
             {
                 return Task.FromResult(Result(values, 0, """
                     {

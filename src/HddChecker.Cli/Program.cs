@@ -628,14 +628,21 @@ static void PrintCycle(AcquisitionCycleResult cycle)
     Console.WriteLine($"Descubiertos: {cycle.DiscoveredCount}");
     Console.WriteLine($"Capturados: {cycle.CapturedCount}");
     Console.WriteLine($"Fallidos: {cycle.FailedCount}");
+    Console.WriteLine($"Rutas duplicadas: {cycle.DuplicateRouteCount}");
     Console.WriteLine();
     foreach (var attempt in cycle.Attempts)
     {
-        if (attempt.Succeeded)
+        if (attempt.Status is DeviceAcquisitionStatus.Captured)
         {
             Console.WriteLine(
                 $"[capturado] {attempt.Device.Name} ({attempt.Device.Type ?? "tipo desconocido"}) " +
                 $"→ {attempt.CaptureDirectory}");
+        }
+        else if (attempt.Status is DeviceAcquisitionStatus.DuplicateRoute)
+        {
+            Console.WriteLine(
+                $"[ruta duplicada] {attempt.Device.Name} ({attempt.Device.Type ?? "tipo desconocido"}) " +
+                $"→ {attempt.IdentityKey}");
         }
         else
         {

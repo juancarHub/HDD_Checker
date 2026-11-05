@@ -94,7 +94,9 @@ the most recent interval. Run `index` after new captures before reading status.
 `collect` executes one manual monitoring cycle: non-opening discovery, isolated
 per-device acquisition, evidence persistence and SQLite synchronization. A
 failed or timed-out unit is reported without preventing other devices from being
-captured. This orchestration is intended to be reused by the future service.
+captured. Alternative paths that resolve to the same WWN or serial are reported
+as duplicate routes and stored only once per cycle. This orchestration is
+intended to be reused by the future service.
 
 See [Architecture](docs/architecture.md) for the current component boundaries
 and persistence direction. See [Product vision](docs/product-vision.md) for the

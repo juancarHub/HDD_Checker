@@ -4,9 +4,11 @@ namespace HddChecker.Core.Acquisition;
 
 public sealed record DeviceAcquisitionAttempt(
     SmartctlDevice Device,
+    DeviceAcquisitionStatus Status,
     AcquisitionOutcome Outcome,
     string? CaptureDirectory,
-    string? ErrorMessage)
+    string? ErrorMessage,
+    string? IdentityKey)
 {
-    public bool Succeeded => CaptureDirectory is not null;
+    public bool Succeeded => Status is DeviceAcquisitionStatus.Captured;
 }

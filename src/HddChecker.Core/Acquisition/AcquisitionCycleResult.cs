@@ -7,5 +7,6 @@ public sealed record AcquisitionCycleResult(
 {
     public int DiscoveredCount => Attempts.Count;
     public int CapturedCount => Attempts.Count(attempt => attempt.Succeeded);
-    public int FailedCount => Attempts.Count(attempt => !attempt.Succeeded);
+    public int FailedCount => Attempts.Count(attempt => attempt.Status is DeviceAcquisitionStatus.Failed);
+    public int DuplicateRouteCount => Attempts.Count(attempt => attempt.Status is DeviceAcquisitionStatus.DuplicateRoute);
 }

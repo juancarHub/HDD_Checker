@@ -1,5 +1,6 @@
 using System.Text.Json;
 using HddChecker.Core.Smartctl;
+using HddChecker.Core.Longitudinal;
 
 namespace HddChecker.Core.Acquisition;
 
@@ -22,29 +23,38 @@ public sealed class AcquisitionCycleRunner(
 
         var devices = SmartctlJsonParser.ParseScan(scan.StandardOutput);
         var attempts = new List<DeviceAcquisitionAttempt>(devices.Count);
+        var capturedIdentities = new HashSet<DeviceIdentity>();
         foreach (var device in devices)
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                attempts.Add(await AcquireDeviceAsync(device, capturesRoot, cancellationToken));
+                attempts.Add(await AcquireDeviceAsync(
+                    device,
+                    capturesRoot,
+                    capturedIdentities,
+                    cancellationToken));
             }
             catch (SmartctlTimeoutException exception)
             {
                 attempts.Add(new DeviceAcquisitionAttempt(
                     device,
+                    DeviceAcquisitionStatus.Failed,
                     AcquisitionOutcome.Fatal,
                     null,
-                    exception.Message));
+                    exception.Message,
+                    null));
             }
             catch (Exception exception) when (
                 exception is JsonException or InvalidDataException or IOException)
             {
                 attempts.Add(new DeviceAcquisitionAttempt(
                     device,
+                    DeviceAcquisitionStatus.Failed,
                     AcquisitionOutcome.Fatal,
                     null,
-                    exception.Message));
+                    exception.Message,
+                    null));
             }
         }
 
@@ -54,6 +64,7 @@ public sealed class AcquisitionCycleRunner(
     private async Task<DeviceAcquisitionAttempt> AcquireDeviceAsync(
         SmartctlDevice device,
         string capturesRoot,
+        ISet<DeviceIdentity> capturedIdentities,
         CancellationToken cancellationToken)
     {
         var arguments = new List<string>();
@@ -73,19 +84,39 @@ public sealed class AcquisitionCycleRunner(
         {
             return new DeviceAcquisitionAttempt(
                 device,
+                DeviceAcquisitionStatus.Failed,
                 assessment.Outcome,
                 null,
-                ReadError(result));
+                ReadError(result),
+                null);
         }
 
         var snapshot = SmartctlJsonParser.ParseSnapshot(result.StandardOutput);
+        var identity = DeviceIdentity.FromSnapshot(snapshot);
+        if (!capturedIdentities.Add(identity))
+        {
+            return new DeviceAcquisitionAttempt(
+                device,
+                DeviceAcquisitionStatus.DuplicateRoute,
+                assessment.Outcome,
+                null,
+                "La unidad física ya fue capturada mediante otra ruta en este ciclo.",
+                identity.Key);
+        }
+
         var directory = await packageWriter.WriteAsync(
             capturesRoot,
             result,
             assessment,
             snapshot,
             cancellationToken);
-        return new DeviceAcquisitionAttempt(device, assessment.Outcome, directory, null);
+        return new DeviceAcquisitionAttempt(
+            device,
+            DeviceAcquisitionStatus.Captured,
+            assessment.Outcome,
+            directory,
+            null,
+            identity.Key);
     }
 
     private static string ReadError(SmartctlCommandResult result)
