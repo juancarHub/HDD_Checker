@@ -15,7 +15,9 @@ if (parsed.ShowHelp)
 
 try
 {
-    var runner = new SmartctlRunner(parsed.SmartctlPath);
+    var runner = new SmartctlRunner(
+        parsed.SmartctlPath,
+        TimeSpan.FromSeconds(parsed.TimeoutSeconds));
 
     if (parsed.Command.Equals("history", StringComparison.OrdinalIgnoreCase))
     {
@@ -210,6 +212,12 @@ try
     PrintHelp();
     return 2;
 }
+catch (SmartctlTimeoutException exception)
+{
+    Console.Error.WriteLine($"Adquisición cancelada: {exception.Message}");
+    Console.Error.WriteLine("El resto del sistema puede continuar; esta unidad debe registrarse como no respondiente.");
+    return 1;
+}
 catch (Exception exception)
 {
     Console.Error.WriteLine($"Error de adquisición: {exception.Message}");
@@ -224,16 +232,18 @@ static (
     string SmartctlPath,
     string CapturesRoot,
     string DatabasePath,
+    double TimeoutSeconds,
     bool ShowHelp) ParseArguments(string[] arguments)
 {
     if (arguments.Length == 0 || arguments.Any(argument => argument is "-h" or "--help"))
     {
-        return (string.Empty, null, null, null, DefaultSmartctlPath, "captures", "data/hdd-checker.db", true);
+        return (string.Empty, null, null, null, DefaultSmartctlPath, "captures", "data/hdd-checker.db", 30, true);
     }
 
     var smartctlPath = DefaultSmartctlPath;
     var capturesRoot = "captures";
     var databasePath = "data/hdd-checker.db";
+    var timeoutSeconds = 30d;
     string? deviceType = null;
     var positional = new List<string>();
 
@@ -283,6 +293,22 @@ static (
             continue;
         }
 
+        if (arguments[index] == "--timeout-seconds")
+        {
+            if (++index >= arguments.Length ||
+                !double.TryParse(
+                    arguments[index],
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out timeoutSeconds) ||
+                timeoutSeconds <= 0)
+            {
+                throw new ArgumentException("--timeout-seconds requiere un número positivo usando punto decimal.");
+            }
+
+            continue;
+        }
+
         positional.Add(arguments[index]);
     }
 
@@ -294,6 +320,7 @@ static (
         smartctlPath,
         capturesRoot,
         databasePath,
+        timeoutSeconds,
         false);
 }
 
@@ -602,6 +629,9 @@ static void PrintHelp()
     Console.WriteLine("  hdd-checker trend <modelo-o-identidad> [--captures <carpeta>]");
     Console.WriteLine("  hdd-checker index [--captures <carpeta>] [--database <archivo.db>]");
     Console.WriteLine("  hdd-checker status [filtro] [--database <archivo.db>]");
+    Console.WriteLine();
+    Console.WriteLine("Opciones de adquisición:");
+    Console.WriteLine("  --timeout-seconds <n>  Tiempo máximo por consulta (predeterminado: 30)");
     Console.WriteLine();
     Console.WriteLine("Solo se realizan consultas de información. No se ejecutan autodiagnósticos ni escrituras.");
 }

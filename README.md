@@ -91,7 +91,8 @@ the latest measurement per unit and the highest-severity finding attached to
 the most recent interval. Run `index` after new captures before reading status.
 
 See [Architecture](docs/architecture.md) for the current component boundaries
-and persistence direction.
+and persistence direction. See [Product vision](docs/product-vision.md) for the
+longitudinal differentiator, honest limits and working-name status.
 
 USB bridges may require the smartctl device type reported by `scan`. Pass it to
 `inspect` or `capture` with `--device-type <type>`. Opening some physical drives
@@ -101,6 +102,8 @@ on Windows also requires an Administrator terminal.
 
 The laboratory currently performs information queries only. It does not launch
 SMART self-tests, modify device settings or write data to storage devices.
+Every smartctl process has a configurable timeout (30 seconds by default), so a
+non-responsive device cannot block an acquisition cycle indefinitely.
 
 ## Tests
 

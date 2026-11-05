@@ -5,6 +5,13 @@ namespace HddChecker.Core.Tests;
 public sealed class SmartctlResultAssessmentTests
 {
     [Fact]
+    public void RunnerRejectsNonPositiveTimeout()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new SmartctlRunner("smartctl", TimeSpan.Zero));
+    }
+
+    [Fact]
     public void CommandFailureWithUsableJsonIsPartial()
     {
         var assessment = SmartctlResultAssessment.FromExitCode(4);
