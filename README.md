@@ -82,6 +82,15 @@ on Windows also requires an Administrator terminal.
 The laboratory currently performs information queries only. It does not launch
 SMART self-tests, modify device settings or write data to storage devices.
 
+## Tests
+
+The automated suite uses synthetic, anonymized SMART JSON only. Real laboratory
+captures and device identifiers remain outside Git.
+
+```powershell
+dotnet test HDD_Checker.slnx
+```
+
 ## License
 
 MIT
