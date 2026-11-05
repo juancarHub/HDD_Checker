@@ -40,6 +40,7 @@ dotnet run --project src/HddChecker.Cli -- inspect /dev/sda
 dotnet run --project src/HddChecker.Cli -- capture /dev/sda
 dotnet run --project src/HddChecker.Cli -- capture /dev/sdd --device-type usbprolific
 dotnet run --project src/HddChecker.Cli -- show captures/<capture-id>
+dotnet run --project src/HddChecker.Cli -- compare captures/<older-id> captures/<newer-id>
 ```
 
 `inspect` displays a normalized card without writing files. `capture` creates a
@@ -55,6 +56,9 @@ different local directory with `--captures <path>`. Only explicitly anonymized
 samples may be committed in the future.
 
 `show` reopens an existing local package without querying the physical device.
+`compare` verifies stable device identity, orders two captures by time and shows
+raw metric deltas. Risk scoring and trend acceleration are deliberately deferred
+until the acquisition and normalization layers have broader real-device coverage.
 
 USB bridges may require the smartctl device type reported by `scan`. Pass it to
 `inspect` or `capture` with `--device-type <type>`. Opening some physical drives

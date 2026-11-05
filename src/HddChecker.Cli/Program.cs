@@ -1,4 +1,5 @@
 using HddChecker.Core.Acquisition;
+using HddChecker.Core.Longitudinal;
 using HddChecker.Core.Smartctl;
 
 const string DefaultSmartctlPath = @"C:\Program Files\smartmontools\bin\smartctl.exe";
@@ -28,6 +29,22 @@ try
         Console.WriteLine();
         Console.WriteLine($"Captura: {package.CaptureId}");
         Console.WriteLine($"Fecha UTC: {package.CapturedAtUtc:O}");
+        return 0;
+    }
+
+    if (parsed.Command.Equals("compare", StringComparison.OrdinalIgnoreCase))
+    {
+        if (string.IsNullOrWhiteSpace(parsed.Device) ||
+            string.IsNullOrWhiteSpace(parsed.SecondPath))
+        {
+            Console.Error.WriteLine("compare requiere dos carpetas de captura.");
+            return 2;
+        }
+
+        var reader = new AcquisitionPackageReader();
+        var first = await reader.ReadAsync(parsed.Device);
+        var second = await reader.ReadAsync(parsed.SecondPath);
+        PrintComparison(LongitudinalComparer.Compare(first, second));
         return 0;
     }
 
@@ -135,6 +152,7 @@ catch (Exception exception)
 static (
     string Command,
     string? Device,
+    string? SecondPath,
     string? DeviceType,
     string SmartctlPath,
     string CapturesRoot,
@@ -142,7 +160,7 @@ static (
 {
     if (arguments.Length == 0 || arguments.Any(argument => argument is "-h" or "--help"))
     {
-        return (string.Empty, null, null, DefaultSmartctlPath, "captures", true);
+        return (string.Empty, null, null, null, DefaultSmartctlPath, "captures", true);
     }
 
     var smartctlPath = DefaultSmartctlPath;
@@ -191,6 +209,7 @@ static (
     return (
         positional.ElementAtOrDefault(0) ?? string.Empty,
         positional.ElementAtOrDefault(1),
+        positional.ElementAtOrDefault(2),
         deviceType,
         smartctlPath,
         capturesRoot,
@@ -224,6 +243,12 @@ static void PrintSnapshot(SmartDeviceSnapshot snapshot)
     PrintField("Ciclos de carga", snapshot.LoadCycleCount);
     PrintField("Temperatura (°C)", snapshot.TemperatureCelsius);
     PrintField("Vida restante (%)", snapshot.RemainingLifePercent);
+    PrintField("Reserva NVMe disponible (%)", snapshot.NvmeAvailableSparePercent);
+    PrintField("Unidades NVMe leídas", snapshot.NvmeDataUnitsRead);
+    PrintField("Unidades NVMe escritas", snapshot.NvmeDataUnitsWritten);
+    PrintField("Apagados inseguros NVMe", snapshot.NvmeUnsafeShutdowns);
+    PrintField("Errores de medios NVMe", snapshot.NvmeMediaErrors);
+    PrintField("Entradas de errores NVMe", snapshot.NvmeErrorLogEntries);
     PrintField("Sectores reasignados", snapshot.ReallocatedSectors);
     PrintField("Sectores pendientes", snapshot.PendingSectors);
     PrintField("Sectores irrecuperables", snapshot.OfflineUncorrectableSectors);
@@ -260,6 +285,29 @@ static string FormatBoolean(bool value) => value ? "sí" : "no";
 
 static string FormatValue(object? value) => value?.ToString() ?? "no disponible";
 
+static void PrintComparison(LongitudinalComparison comparison)
+{
+    Console.WriteLine("Comparación longitudinal");
+    Console.WriteLine("-----------------------");
+    Console.WriteLine($"Identidad: {comparison.Identity.Key}");
+    Console.WriteLine($"Medición anterior (UTC): {comparison.PreviousCaptureUtc:O}");
+    Console.WriteLine($"Medición actual (UTC): {comparison.CurrentCaptureUtc:O}");
+    Console.WriteLine($"Tiempo calendario: {comparison.CalendarElapsed}");
+    Console.WriteLine($"Horas de uso transcurridas: {FormatValue(comparison.PowerOnHoursElapsed)}");
+    Console.WriteLine();
+
+    foreach (var metric in comparison.Metrics.Where(metric => metric.IsComparable))
+    {
+        var delta = metric.Delta >= 0 ? $"+{metric.Delta}" : metric.Delta.ToString();
+        Console.WriteLine(
+            $"{metric.Name}: {metric.Previous} → {metric.Current} " +
+            $"(Δ {delta}{metric.Unit})");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("Esta comparación describe cambios; todavía no asigna una puntuación de riesgo.");
+}
+
 static void PrintHelp()
 {
     Console.WriteLine("HDD_Checker acquisition laboratory");
@@ -269,6 +317,7 @@ static void PrintHelp()
     Console.WriteLine("  hdd-checker inspect <dispositivo> [--device-type <tipo>] [--smartctl <ruta>]");
     Console.WriteLine("  hdd-checker capture <dispositivo> [--device-type <tipo>] [--captures <carpeta>] [--smartctl <ruta>]");
     Console.WriteLine("  hdd-checker show <carpeta-de-captura>");
+    Console.WriteLine("  hdd-checker compare <captura-anterior> <captura-actual>");
     Console.WriteLine();
     Console.WriteLine("Solo se realizan consultas de información. No se ejecutan autodiagnósticos ni escrituras.");
 }
