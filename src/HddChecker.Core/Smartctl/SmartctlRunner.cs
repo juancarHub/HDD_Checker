@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace HddChecker.Core.Smartctl;
 
-public sealed class SmartctlRunner
+public sealed class SmartctlRunner : ISmartctlRunner
 {
     public SmartctlRunner(string executablePath, TimeSpan? timeout = null)
     {

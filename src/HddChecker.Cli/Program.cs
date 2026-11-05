@@ -40,6 +40,19 @@ try
         return summary.IssueCount == 0 ? 0 : 1;
     }
 
+    if (parsed.Command.Equals("collect", StringComparison.OrdinalIgnoreCase))
+    {
+        var cycle = await new AcquisitionCycleRunner(runner, new AcquisitionPackageWriter())
+            .RunAsync(parsed.CapturesRoot);
+        PrintCycle(cycle);
+
+        var catalog = await CaptureCatalog.LoadAsync(parsed.CapturesRoot);
+        var index = new CaptureIndex(parsed.DatabasePath);
+        await index.SynchronizeAsync(catalog);
+        Console.WriteLine($"Índice actualizado: {index.DatabasePath}");
+        return cycle.FailedCount == 0 && catalog.Issues.Count == 0 ? 0 : 1;
+    }
+
     if (parsed.Command.Equals("status", StringComparison.OrdinalIgnoreCase))
     {
         var index = new CaptureIndex(parsed.DatabasePath);
@@ -606,6 +619,35 @@ static string FormatOutcomeText(string value) => value switch
     _ => value,
 };
 
+static void PrintCycle(AcquisitionCycleResult cycle)
+{
+    Console.WriteLine("Ciclo de adquisición");
+    Console.WriteLine("--------------------");
+    Console.WriteLine($"Inicio UTC: {cycle.StartedAtUtc:O}");
+    Console.WriteLine($"Fin UTC: {cycle.CompletedAtUtc:O}");
+    Console.WriteLine($"Descubiertos: {cycle.DiscoveredCount}");
+    Console.WriteLine($"Capturados: {cycle.CapturedCount}");
+    Console.WriteLine($"Fallidos: {cycle.FailedCount}");
+    Console.WriteLine();
+    foreach (var attempt in cycle.Attempts)
+    {
+        if (attempt.Succeeded)
+        {
+            Console.WriteLine(
+                $"[capturado] {attempt.Device.Name} ({attempt.Device.Type ?? "tipo desconocido"}) " +
+                $"→ {attempt.CaptureDirectory}");
+        }
+        else
+        {
+            Console.WriteLine(
+                $"[no disponible] {attempt.Device.Name} ({attempt.Device.Type ?? "tipo desconocido"}): " +
+                attempt.ErrorMessage);
+        }
+    }
+
+    Console.WriteLine();
+}
+
 static string FormatNullableBoolean(bool? value) => value switch
 {
     true => "sí",
@@ -629,6 +671,7 @@ static void PrintHelp()
     Console.WriteLine("  hdd-checker trend <modelo-o-identidad> [--captures <carpeta>]");
     Console.WriteLine("  hdd-checker index [--captures <carpeta>] [--database <archivo.db>]");
     Console.WriteLine("  hdd-checker status [filtro] [--database <archivo.db>]");
+    Console.WriteLine("  hdd-checker collect [--captures <carpeta>] [--database <archivo.db>]");
     Console.WriteLine();
     Console.WriteLine("Opciones de adquisición:");
     Console.WriteLine("  --timeout-seconds <n>  Tiempo máximo por consulta (predeterminado: 30)");

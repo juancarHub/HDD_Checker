@@ -45,6 +45,7 @@ dotnet run --project src/HddChecker.Cli -- history
 dotnet run --project src/HddChecker.Cli -- trend OM8PDP
 dotnet run --project src/HddChecker.Cli -- index
 dotnet run --project src/HddChecker.Cli -- status
+dotnet run --project src/HddChecker.Cli -- collect
 ```
 
 `inspect` displays a normalized card without writing files. `capture` creates a
@@ -89,6 +90,11 @@ source evidence.
 `status` reads the SQLite index without rescanning capture folders. It reports
 the latest measurement per unit and the highest-severity finding attached to
 the most recent interval. Run `index` after new captures before reading status.
+
+`collect` executes one manual monitoring cycle: non-opening discovery, isolated
+per-device acquisition, evidence persistence and SQLite synchronization. A
+failed or timed-out unit is reported without preventing other devices from being
+captured. This orchestration is intended to be reused by the future service.
 
 See [Architecture](docs/architecture.md) for the current component boundaries
 and persistence direction. See [Product vision](docs/product-vision.md) for the
