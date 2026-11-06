@@ -3,6 +3,7 @@
     <Project Path="src/HddChecker.Agent/HddChecker.Agent.csproj" />
     <Project Path="src/HddChecker.App/HddChecker.App.csproj" />
     <Project Path="src/HddChecker.Core/HddChecker.Core.csproj" />
+    <Project Path="src/HddChecker.Launcher/HddChecker.Launcher.csproj" />
     <Project Path="src/HddChecker.Cli/HddChecker.Cli.csproj" />
     <Project Path="src/HddChecker.Service/HddChecker.Service.csproj" />
     <Project Path="src/HddChecker.Storage/HddChecker.Storage.csproj" />

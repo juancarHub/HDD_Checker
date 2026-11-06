@@ -122,6 +122,12 @@ persistent alert queue and displays each new attention, warning or critical
 finding only once. Double-clicking its icon or choosing **Abrir panel** opens
 the single-instance desktop console. It never accesses physical drives.
 
+`HDD_Checker.exe` is the installed entry point. With no arguments it ensures
+the Windows service and notification agent are running; `/console` opens the
+panel and `/agent` starts the notification companion. Development packaging and
+installation instructions are documented in
+[Windows installation](docs/installation.md).
+
 See [Architecture](docs/architecture.md) for the current component boundaries
 and persistence direction. See [Product vision](docs/product-vision.md) for the
 longitudinal differentiator, honest limits and working-name status.

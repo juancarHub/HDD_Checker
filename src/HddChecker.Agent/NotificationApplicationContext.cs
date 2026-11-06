@@ -10,6 +10,7 @@ internal sealed class NotificationApplicationContext : ApplicationContext
     private readonly string databasePath;
     private readonly NotifyIcon notifyIcon;
     private readonly System.Windows.Forms.Timer pollTimer;
+    private readonly DeliveredNotificationStore deliveredNotifications = new();
     private bool polling;
 
     public NotificationApplicationContext(string dataRoot)
@@ -62,13 +63,14 @@ internal sealed class NotificationApplicationContext : ApplicationContext
         try
         {
             var index = new CaptureIndex(databasePath);
-            var pending = await index.GetPendingNotificationsAsync(1);
-            if (pending.Count == 0)
+            var pending = await index.GetPendingNotificationsAsync(100);
+            var notification = pending.FirstOrDefault(candidate =>
+                !deliveredNotifications.Contains(candidate.EventKey));
+            if (notification is null)
             {
                 return;
             }
 
-            var notification = pending[0];
             notifyIcon.ShowBalloonTip(
                 10_000,
                 Truncate(notification.Title, 63),
@@ -79,7 +81,7 @@ internal sealed class NotificationApplicationContext : ApplicationContext
                 notification.Severity is FindingSeverity.Critical
                     ? ToolTipIcon.Error
                     : ToolTipIcon.Warning);
-            await index.MarkNotificationDeliveredAsync(notification.EventKey);
+            await deliveredNotifications.AddAsync(notification.EventKey);
         }
         catch (Exception exception)
         {
@@ -121,6 +123,16 @@ internal sealed class NotificationApplicationContext : ApplicationContext
         if (File.Exists(packaged))
         {
             return packaged;
+        }
+
+        var packagedSibling = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "..",
+            "app",
+            "HddChecker.App.exe"));
+        if (File.Exists(packagedSibling))
+        {
+            return packagedSibling;
         }
 
         var developmentRoot = DataRootResolver.FindDevelopmentRoot();
