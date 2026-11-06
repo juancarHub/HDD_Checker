@@ -123,7 +123,9 @@ persistent alert queue and displays each new attention, warning or critical
 finding only once. Double-clicking its icon or choosing **Abrir panel** opens
 the single-instance desktop console. Its **Probar avisos** submenu previews all
 notification severities without writing incidents or altering monitoring data.
-It never accesses physical drives.
+Native Windows notifications are complemented by an actionable HDD Checker card.
+The tray icon is green without current findings, amber for attention or warning,
+and red for critical state. It never accesses physical drives.
 
 `HDD_Checker.exe` is the installed entry point. With no arguments it ensures
 the Windows service and notification agent are running; `/console` opens the

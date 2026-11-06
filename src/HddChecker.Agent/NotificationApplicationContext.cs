@@ -12,6 +12,9 @@ internal sealed class NotificationApplicationContext : ApplicationContext
     private readonly System.Windows.Forms.Timer pollTimer;
     private readonly DeliveredNotificationStore deliveredNotifications = new();
     private bool polling;
+    private FindingSeverity? currentSeverity;
+    private Icon? currentIcon;
+    private IncidentAlertForm? activeAlert;
 
     public NotificationApplicationContext(string dataRoot)
     {
@@ -32,13 +35,13 @@ internal sealed class NotificationApplicationContext : ApplicationContext
 
         notifyIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Information,
             Text = "HDD Checker",
             Visible = true,
             ContextMenuStrip = menu,
         };
         notifyIcon.DoubleClick += (_, _) => OpenConsole();
         notifyIcon.BalloonTipClicked += (_, _) => OpenConsole();
+        UpdateStatusIcon(null);
 
         pollTimer = new System.Windows.Forms.Timer { Interval = 15_000 };
         pollTimer.Tick += async (_, _) => await PollAsync();
@@ -57,6 +60,8 @@ internal sealed class NotificationApplicationContext : ApplicationContext
         pollTimer.Stop();
         pollTimer.Dispose();
         notifyIcon.Visible = false;
+        activeAlert?.Close();
+        currentIcon?.Dispose();
         notifyIcon.Dispose();
         base.ExitThreadCore();
     }
@@ -72,6 +77,15 @@ internal sealed class NotificationApplicationContext : ApplicationContext
         try
         {
             var index = new CaptureIndex(databasePath);
+            var statuses = await index.GetStatusesAsync();
+            currentSeverity = statuses
+                .Select(status => status.SmartPassed is false
+                    ? FindingSeverity.Critical
+                    : status.HighestFindingSeverity)
+                .Where(severity => severity is not null)
+                .DefaultIfEmpty(null)
+                .Max();
+            UpdateStatusIcon(currentSeverity);
             var pending = await index.GetPendingNotificationsAsync(100);
             var notification = pending.FirstOrDefault(candidate =>
                 !deliveredNotifications.Contains(candidate.EventKey));
@@ -90,6 +104,12 @@ internal sealed class NotificationApplicationContext : ApplicationContext
                 notification.Severity is FindingSeverity.Critical
                     ? ToolTipIcon.Error
                     : ToolTipIcon.Warning);
+            ShowCustomAlert(new AlertPresentation(
+                notification.Title,
+                $"{notification.ModelName}: {notification.Message}",
+                notification.Recommendation,
+                notification.Severity,
+                false));
             await deliveredNotifications.AddAsync(notification.EventKey);
         }
         catch (Exception exception)
@@ -104,11 +124,45 @@ internal sealed class NotificationApplicationContext : ApplicationContext
 
     private void ShowPreview(NotificationPreview preview)
     {
+        UpdateStatusIcon(preview.Severity);
         notifyIcon.ShowBalloonTip(
             10_000,
             preview.Title,
             preview.Message,
             preview.Icon);
+        ShowCustomAlert(new AlertPresentation(
+            preview.Title,
+            preview.Message,
+            preview.Recommendation,
+            preview.Severity,
+            true));
+    }
+
+    private void ShowCustomAlert(AlertPresentation alert)
+    {
+        activeAlert?.Close();
+        activeAlert = new IncidentAlertForm(alert, OpenConsole);
+        activeAlert.FormClosed += (_, _) =>
+        {
+            activeAlert = null;
+            UpdateStatusIcon(currentSeverity);
+        };
+        activeAlert.Show();
+    }
+
+    private void UpdateStatusIcon(FindingSeverity? severity)
+    {
+        var color = severity switch
+        {
+            FindingSeverity.Critical => Color.FromArgb(239, 68, 68),
+            FindingSeverity.Warning or FindingSeverity.Attention => Color.FromArgb(245, 158, 11),
+            _ => Color.FromArgb(34, 197, 94),
+        };
+        var nextIcon = StatusIconFactory.Create(color);
+        var previousIcon = currentIcon;
+        currentIcon = nextIcon;
+        notifyIcon.Icon = nextIcon;
+        previousIcon?.Dispose();
     }
 
     private static string Truncate(string value, int maximumLength) =>
