@@ -116,6 +116,12 @@ second launch activates the existing window instead of creating another one.
 During development, pass `--data-root <path>` to inspect an alternative local
 catalog; the installed application will use the service data under ProgramData.
 
+`HddChecker.Agent` is the per-user notification companion. It stays in the
+Windows notification area, announces that supervision is active, polls the
+persistent alert queue and displays each new attention, warning or critical
+finding only once. Double-clicking its icon or choosing **Abrir panel** opens
+the single-instance desktop console. It never accesses physical drives.
+
 See [Architecture](docs/architecture.md) for the current component boundaries
 and persistence direction. See [Product vision](docs/product-vision.md) for the
 longitudinal differentiator, honest limits and working-name status.

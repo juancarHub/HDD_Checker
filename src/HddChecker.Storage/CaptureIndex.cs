@@ -171,6 +171,108 @@ public sealed class CaptureIndex(string databasePath)
         return measurements;
     }
 
+    public async Task<int> QueueLatestNotificationsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = CreateConnection(SqliteOpenMode.ReadWrite);
+        await connection.OpenAsync(cancellationToken);
+        const string sql = """
+        INSERT OR IGNORE INTO notification_events (
+            event_key, identity_key, model_name, capture_id, severity,
+            title, message, recommendation, created_at_utc, delivered_at_utc)
+        SELECT f.identity_key || '|' || f.current_capture_id || '|' || f.code,
+               f.identity_key,
+               COALESCE(d.model_name, 'Unidad sin nombre'),
+               f.current_capture_id,
+               f.severity,
+               CASE f.severity
+                   WHEN 3 THEN 'Problema crítico de almacenamiento'
+                   WHEN 2 THEN 'Advertencia de almacenamiento'
+                   ELSE 'Indicador que requiere atención'
+               END,
+               f.message,
+               CASE f.severity
+                   WHEN 3 THEN 'Comprueba la copia de seguridad y planifica la sustitución inmediata.'
+                   WHEN 2 THEN 'Comprueba la copia de seguridad y revisa esta unidad lo antes posible.'
+                   ELSE 'Mantén la supervisión y revisa si el indicador continúa aumentando.'
+               END,
+               $created_at_utc,
+               NULL
+        FROM findings f
+        JOIN devices d ON d.identity_key = f.identity_key
+        JOIN captures c
+          ON c.identity_key = f.identity_key
+         AND c.capture_id = f.current_capture_id
+        WHERE f.severity >= $minimum_severity
+          AND c.captured_at_utc = d.latest_capture_utc;
+        """;
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        Add(command, "$created_at_utc", FormatTimestamp(DateTimeOffset.UtcNow));
+        Add(command, "$minimum_severity", (int)FindingSeverity.Attention);
+        return await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<PendingNotification>> GetPendingNotificationsAsync(
+        int limit = 10,
+        CancellationToken cancellationToken = default)
+    {
+        if (limit is < 1 or > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(limit));
+        }
+
+        await using var connection = CreateConnection(SqliteOpenMode.ReadOnly);
+        await connection.OpenAsync(cancellationToken);
+        const string sql = """
+        SELECT event_key, identity_key, model_name, capture_id, severity,
+               title, message, recommendation, created_at_utc
+        FROM notification_events
+        WHERE delivered_at_utc IS NULL
+        ORDER BY severity DESC, created_at_utc, event_key
+        LIMIT $limit;
+        """;
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        Add(command, "$limit", limit);
+        var notifications = new List<PendingNotification>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            notifications.Add(new PendingNotification(
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                reader.GetString(3),
+                (FindingSeverity)reader.GetInt32(4),
+                reader.GetString(5),
+                reader.GetString(6),
+                reader.GetString(7),
+                DateTimeOffset.Parse(reader.GetString(8), CultureInfo.InvariantCulture)));
+        }
+
+        return notifications;
+    }
+
+    public async Task MarkNotificationDeliveredAsync(
+        string eventKey,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventKey);
+        await using var connection = CreateConnection(SqliteOpenMode.ReadWrite);
+        await connection.OpenAsync(cancellationToken);
+        const string sql = """
+        UPDATE notification_events
+        SET delivered_at_utc = COALESCE(delivered_at_utc, $delivered_at_utc)
+        WHERE event_key = $event_key;
+        """;
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        Add(command, "$delivered_at_utc", FormatTimestamp(DateTimeOffset.UtcNow));
+        Add(command, "$event_key", eventKey);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     private static async Task InitializeSchemaAsync(
         SqliteConnection connection,
         CancellationToken cancellationToken)
@@ -231,7 +333,21 @@ public sealed class CaptureIndex(string databasePath)
         );
         CREATE INDEX IF NOT EXISTS ix_findings_identity_capture
             ON findings(identity_key, current_capture_id, severity DESC);
-        PRAGMA user_version = 2;
+        CREATE TABLE IF NOT EXISTS notification_events (
+            event_key TEXT PRIMARY KEY,
+            identity_key TEXT NOT NULL,
+            model_name TEXT NOT NULL,
+            capture_id TEXT NOT NULL,
+            severity INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            recommendation TEXT NOT NULL,
+            created_at_utc TEXT NOT NULL,
+            delivered_at_utc TEXT
+        );
+        CREATE INDEX IF NOT EXISTS ix_notification_events_pending
+            ON notification_events(delivered_at_utc, severity DESC, created_at_utc);
+        PRAGMA user_version = 3;
         """;
         await using var command = connection.CreateCommand();
         command.CommandText = sql;

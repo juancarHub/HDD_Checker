@@ -84,16 +84,18 @@ public sealed class MonitoringWorker(
         var catalog = await CaptureCatalog.LoadAsync(capturesRoot, cancellationToken);
         var index = new CaptureIndex(databasePath);
         var summary = await index.SynchronizeAsync(catalog, cancellationToken);
+        var queuedNotifications = await index.QueueLatestNotificationsAsync(cancellationToken);
 
         logger.LogInformation(
             "Ciclo completado: {Captured} capturados, {Failed} fallidos, " +
             "{Duplicates} rutas duplicadas, {Devices} unidades indexadas y " +
-            "{Issues} incidencias de catálogo.",
+            "{Issues} incidencias de catálogo y {Notifications} alertas nuevas.",
             cycle.CapturedCount,
             cycle.FailedCount,
             cycle.DuplicateRouteCount,
             summary.DeviceCount,
-            summary.IssueCount);
+            summary.IssueCount,
+            queuedNotifications);
     }
 
     private static string ResolveDataRoot(string? configuredPath)
