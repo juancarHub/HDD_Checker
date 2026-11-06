@@ -111,7 +111,8 @@ validated interactively.
 SQLite index without requiring physical-drive privileges and presents the
 current units, their explained current assessment and a per-device measurement
 timeline with selectable metric charts. A single measurement is explicitly treated as insufficient for a
-trend. It is single-instance: a
+trend. Per-device incident history remains visible after its Windows notification
+has been delivered. It is single-instance: a
 second launch activates the existing window instead of creating another one.
 During development, pass `--data-root <path>` to inspect an alternative local
 catalog; the installed application will use the service data under ProgramData.

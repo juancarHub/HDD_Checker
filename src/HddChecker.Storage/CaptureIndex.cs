@@ -273,6 +273,49 @@ public sealed class CaptureIndex(string databasePath)
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<NotificationHistoryEntry>> GetNotificationHistoryAsync(
+        string? identityKey = null,
+        int limit = 100,
+        CancellationToken cancellationToken = default)
+    {
+        if (limit is < 1 or > 1_000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(limit));
+        }
+
+        await using var connection = CreateConnection(SqliteOpenMode.ReadOnly);
+        await connection.OpenAsync(cancellationToken);
+        const string sql = """
+        SELECT event_key, identity_key, model_name, capture_id, severity,
+               title, message, recommendation, created_at_utc
+        FROM notification_events
+        WHERE $identity_key IS NULL OR identity_key = $identity_key
+        ORDER BY created_at_utc DESC, severity DESC, event_key
+        LIMIT $limit;
+        """;
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        Add(command, "$identity_key", string.IsNullOrWhiteSpace(identityKey) ? null : identityKey);
+        Add(command, "$limit", limit);
+        var entries = new List<NotificationHistoryEntry>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            entries.Add(new NotificationHistoryEntry(
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                reader.GetString(3),
+                (FindingSeverity)reader.GetInt32(4),
+                reader.GetString(5),
+                reader.GetString(6),
+                reader.GetString(7),
+                DateTimeOffset.Parse(reader.GetString(8), CultureInfo.InvariantCulture)));
+        }
+
+        return entries;
+    }
+
     private static async Task InitializeSchemaAsync(
         SqliteConnection connection,
         CancellationToken cancellationToken)

@@ -64,10 +64,13 @@ public sealed class CaptureIndexTests
             Assert.Equal(0, await index.QueueLatestNotificationsAsync());
             var notification = Assert.Single(await index.GetPendingNotificationsAsync());
             Assert.Equal(FindingSeverity.Warning, notification.Severity);
+            var historyEntry = Assert.Single(await index.GetNotificationHistoryAsync(identity.Key));
+            Assert.Equal(notification.EventKey, historyEntry.EventKey);
 
             await index.MarkNotificationDeliveredAsync(notification.EventKey);
 
             Assert.Empty(await index.GetPendingNotificationsAsync());
+            Assert.Single(await index.GetNotificationHistoryAsync(identity.Key));
         }
         finally
         {

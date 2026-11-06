@@ -13,6 +13,7 @@ public partial class MainWindow : Window
     private readonly string databasePath;
     private readonly ObservableCollection<DeviceStatusView> devices = [];
     private readonly ObservableCollection<MeasurementView> measurements = [];
+    private readonly ObservableCollection<IncidentView> incidents = [];
     private IReadOnlyList<DeviceMeasurement> timelineEntries = [];
     private static readonly IReadOnlyList<MetricOption> MetricOptions =
     [
@@ -30,6 +31,7 @@ public partial class MainWindow : Window
         databasePath = Path.Combine(dataRoot, "data", "hdd-checker.db");
         DevicesList.ItemsSource = devices;
         TimelineGrid.ItemsSource = measurements;
+        IncidentGrid.ItemsSource = incidents;
         MetricSelector.ItemsSource = MetricOptions;
         MetricSelector.SelectedIndex = 0;
         Loaded += async (_, _) => await RefreshAsync();
@@ -116,6 +118,7 @@ public partial class MainWindow : Window
 
             timelineEntries = entries;
             UpdateChart();
+            await LoadIncidentsAsync(device);
 
             TimelineSummaryText.Text = entries.Count switch
             {
@@ -129,6 +132,34 @@ public partial class MainWindow : Window
             timelineEntries = [];
             UpdateChart();
             TimelineSummaryText.Text = $"No se pudo abrir la cronología: {exception.Message}";
+        }
+    }
+
+    private async Task LoadIncidentsAsync(DeviceStatusView device)
+    {
+        incidents.Clear();
+        try
+        {
+            var entries = await new CaptureIndex(databasePath)
+                .GetNotificationHistoryAsync(device.IdentityKey);
+            if (DevicesList.SelectedItem is not DeviceStatusView selected ||
+                selected.IdentityKey != device.IdentityKey)
+            {
+                return;
+            }
+
+            foreach (var entry in entries)
+            {
+                incidents.Add(IncidentView.FromEntry(entry));
+            }
+
+            IncidentSummaryText.Text = entries.Count == 0
+                ? "No se ha registrado ninguna incidencia para esta unidad."
+                : $"{entries.Count} incidencias registradas, de la más reciente a la más antigua.";
+        }
+        catch (Exception exception)
+        {
+            IncidentSummaryText.Text = $"No se pudo abrir el historial: {exception.Message}";
         }
     }
 
@@ -268,4 +299,23 @@ public partial class MainWindow : Window
         string Name,
         string Unit,
         Func<DeviceMeasurement, double?> SelectValue);
+
+    private sealed record IncidentView(
+        string CreatedAt,
+        string Severity,
+        string Message,
+        string Recommendation)
+    {
+        public static IncidentView FromEntry(NotificationHistoryEntry entry) => new(
+            entry.CreatedAtUtc.ToLocalTime().ToString("g"),
+            entry.Severity switch
+            {
+                FindingSeverity.Critical => "Crítico",
+                FindingSeverity.Warning => "Advertencia",
+                FindingSeverity.Attention => "Atención",
+                _ => "Información"
+            },
+            entry.Message,
+            entry.Recommendation);
+    }
 }

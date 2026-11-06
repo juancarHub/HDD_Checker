@@ -151,6 +151,35 @@
                                 <DataGridTextColumn Header="Estado" Binding="{Binding State}" Width="120" />
                             </DataGrid.Columns>
                         </DataGrid>
+                        <TextBlock Text="Historial de incidencias" FontSize="16" FontWeight="SemiBold"
+                                   Margin="0,24,0,4" />
+                        <TextBlock x:Name="IncidentSummaryText" Foreground="{StaticResource SecondaryText}"
+                                   Margin="0,0,0,10" />
+                        <DataGrid x:Name="IncidentGrid" Height="190" AutoGenerateColumns="False"
+                                  IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
+                                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                  Background="#111827" Foreground="{StaticResource PrimaryText}"
+                                  BorderThickness="0" RowBackground="#111827" AlternatingRowBackground="#182235"
+                                  HorizontalGridLinesBrush="#374151" VerticalGridLinesBrush="#374151">
+                            <DataGrid.Resources>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="#0F172A" />
+                                    <Setter Property="Foreground" Value="#9CA3AF" />
+                                    <Setter Property="Padding" Value="10,8" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                </Style>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="Padding" Value="10,7" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                </Style>
+                            </DataGrid.Resources>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Fecha" Binding="{Binding CreatedAt}" Width="145" />
+                                <DataGridTextColumn Header="Nivel" Binding="{Binding Severity}" Width="105" />
+                                <DataGridTextColumn Header="Incidencia" Binding="{Binding Message}" Width="*" />
+                                <DataGridTextColumn Header="Recomendación" Binding="{Binding Recommendation}" Width="1.2*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </StackPanel>
                     </ScrollViewer>
                 </Grid>
