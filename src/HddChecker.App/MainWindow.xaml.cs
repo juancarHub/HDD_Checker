@@ -13,6 +13,16 @@ public partial class MainWindow : Window
     private readonly string databasePath;
     private readonly ObservableCollection<DeviceStatusView> devices = [];
     private readonly ObservableCollection<MeasurementView> measurements = [];
+    private IReadOnlyList<DeviceMeasurement> timelineEntries = [];
+    private static readonly IReadOnlyList<MetricOption> MetricOptions =
+    [
+        new("Temperatura", "°C", measurement => measurement.TemperatureCelsius),
+        new("Horas de funcionamiento", "h", measurement => measurement.PowerOnHours),
+        new("Vida restante", "%", measurement => measurement.RemainingLifePercent),
+        new("Sectores reasignados", string.Empty, measurement => measurement.ReallocatedSectors),
+        new("Sectores pendientes", string.Empty, measurement => measurement.PendingSectors),
+        new("Errores de medios NVMe", string.Empty, measurement => measurement.NvmeMediaErrors),
+    ];
 
     public MainWindow(string dataRoot)
     {
@@ -20,6 +30,8 @@ public partial class MainWindow : Window
         databasePath = Path.Combine(dataRoot, "data", "hdd-checker.db");
         DevicesList.ItemsSource = devices;
         TimelineGrid.ItemsSource = measurements;
+        MetricSelector.ItemsSource = MetricOptions;
+        MetricSelector.SelectedIndex = 0;
         Loaded += async (_, _) => await RefreshAsync();
     }
 
@@ -102,6 +114,9 @@ public partial class MainWindow : Window
                 measurements.Add(MeasurementView.FromMeasurement(entry));
             }
 
+            timelineEntries = entries;
+            UpdateChart();
+
             TimelineSummaryText.Text = entries.Count switch
             {
                 0 => "Todavía no hay mediciones para esta unidad.",
@@ -111,8 +126,32 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
+            timelineEntries = [];
+            UpdateChart();
             TimelineSummaryText.Text = $"No se pudo abrir la cronología: {exception.Message}";
         }
+    }
+
+    private void MetricSelector_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
+        UpdateChart();
+
+    private void UpdateChart()
+    {
+        if (MetricSelector.SelectedItem is not MetricOption option)
+        {
+            return;
+        }
+
+        var samples = timelineEntries
+            .Select(measurement => new
+            {
+                measurement.CapturedAtUtc,
+                Value = option.SelectValue(measurement),
+            })
+            .Where(item => item.Value is not null)
+            .Select(item => new ChartSample(item.CapturedAtUtc, item.Value!.Value))
+            .ToArray();
+        TimelineChart.ShowSeries(option.Name, option.Unit, samples);
     }
 
     private void ShowEmpty(string message)
@@ -224,4 +263,9 @@ public partial class MainWindow : Window
                 _ => "No informado"
             });
     }
+
+    private sealed record MetricOption(
+        string Name,
+        string Unit,
+        Func<DeviceMeasurement, double?> SelectValue);
 }

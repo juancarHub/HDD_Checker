@@ -1,7 +1,8 @@
 <Window x:Class="HddChecker.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="HDD Checker" Width="1080" Height="680" MinWidth="850" MinHeight="540"
+        xmlns:local="clr-namespace:HddChecker.App"
+        Title="HDD Checker" Width="1180" Height="760" MinWidth="900" MinHeight="600"
         Background="{StaticResource WindowBackground}" Foreground="{StaticResource PrimaryText}"
         WindowStartupLocation="CenterScreen">
     <Grid Margin="24">
@@ -96,7 +97,16 @@
                         <TextBlock Text="Cronología de mediciones" FontSize="16" FontWeight="SemiBold"
                                    Margin="0,24,0,4" />
                         <TextBlock x:Name="TimelineSummaryText" Foreground="{StaticResource SecondaryText}"
-                                   Margin="0,0,0,10" />
+                                   Margin="0,0,0,12" />
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="Métrica" VerticalAlignment="Center" Margin="0,0,10,0"
+                                       Foreground="{StaticResource SecondaryText}" />
+                            <ComboBox x:Name="MetricSelector" Width="220" HorizontalAlignment="Left"
+                                      SelectionChanged="MetricSelector_SelectionChanged"
+                                      DisplayMemberPath="Name" Padding="8,5"
+                                      Background="#111827" Foreground="{StaticResource PrimaryText}" />
+                        </DockPanel>
+                        <local:MetricChart x:Name="TimelineChart" Height="270" Margin="0,0,0,14" />
                         <DataGrid x:Name="TimelineGrid" Height="210" AutoGenerateColumns="False"
                                   IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
                                   HeadersVisibility="Column" GridLinesVisibility="Horizontal"
