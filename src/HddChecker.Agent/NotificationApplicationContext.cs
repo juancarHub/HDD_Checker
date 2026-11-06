@@ -18,8 +18,17 @@ internal sealed class NotificationApplicationContext : ApplicationContext
         databasePath = Path.Combine(dataRoot, "data", "hdd-checker.db");
         var menu = new ContextMenuStrip();
         menu.Items.Add("Abrir panel", null, (_, _) => OpenConsole());
+        var previewMenu = new ToolStripMenuItem("Probar avisos");
+        foreach (var preview in NotificationPreview.All)
+        {
+            var item = new ToolStripMenuItem(preview.Title.Replace("[SIMULACIÓN] ", string.Empty));
+            item.Click += (_, _) => ShowPreview(preview);
+            previewMenu.DropDownItems.Add(item);
+        }
+
+        menu.Items.Add(previewMenu);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Salir", null, (_, _) => ExitThread());
+        menu.Items.Add("Cerrar agente de notificaciones", null, (_, _) => ExitThread());
 
         notifyIcon = new NotifyIcon
         {
@@ -91,6 +100,15 @@ internal sealed class NotificationApplicationContext : ApplicationContext
         {
             polling = false;
         }
+    }
+
+    private void ShowPreview(NotificationPreview preview)
+    {
+        notifyIcon.ShowBalloonTip(
+            10_000,
+            preview.Title,
+            preview.Message,
+            preview.Icon);
     }
 
     private static string Truncate(string value, int maximumLength) =>
