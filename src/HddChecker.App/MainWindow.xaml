@@ -104,7 +104,25 @@
                             <ComboBox x:Name="MetricSelector" Width="220" HorizontalAlignment="Left"
                                       SelectionChanged="MetricSelector_SelectionChanged"
                                       DisplayMemberPath="Name" Padding="8,5"
-                                      Background="#111827" Foreground="{StaticResource PrimaryText}" />
+                                      Background="#F3F4F6" Foreground="#111827">
+                                <ComboBox.Resources>
+                                    <Style TargetType="ComboBoxItem">
+                                        <Setter Property="Background" Value="#F9FAFB" />
+                                        <Setter Property="Foreground" Value="#111827" />
+                                        <Setter Property="Padding" Value="9,6" />
+                                        <Style.Triggers>
+                                            <Trigger Property="IsHighlighted" Value="True">
+                                                <Setter Property="Background" Value="#BAE6FD" />
+                                                <Setter Property="Foreground" Value="#082F49" />
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="#38BDF8" />
+                                                <Setter Property="Foreground" Value="#082F49" />
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ComboBox.Resources>
+                            </ComboBox>
                         </DockPanel>
                         <local:MetricChart x:Name="TimelineChart" Height="270" Margin="0,0,0,14" />
                         <DataGrid x:Name="TimelineGrid" Height="210" AutoGenerateColumns="False"
