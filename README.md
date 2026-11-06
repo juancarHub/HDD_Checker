@@ -133,6 +133,12 @@ panel and `/agent` starts the notification companion. Development packaging and
 installation instructions are documented in
 [Windows installation](docs/installation.md).
 
+`HddChecker.Simulator` creates an isolated synthetic two-capture history under
+the ignored `artifacts/` directory and queues one attention, warning or critical
+incident through the production analysis and persistence pipeline. It never
+reads or modifies real monitoring data and is excluded from installation
+packages.
+
 See [Architecture](docs/architecture.md) for the current component boundaries
 and persistence direction. See [Product vision](docs/product-vision.md) for the
 longitudinal differentiator, honest limits and working-name status.

@@ -6,6 +6,7 @@
     <Project Path="src/HddChecker.Launcher/HddChecker.Launcher.csproj" />
     <Project Path="src/HddChecker.Cli/HddChecker.Cli.csproj" />
     <Project Path="src/HddChecker.Service/HddChecker.Service.csproj" />
+    <Project Path="src/HddChecker.Simulator/HddChecker.Simulator.csproj" />
     <Project Path="src/HddChecker.Storage/HddChecker.Storage.csproj" />
   </Folder>
   <Folder Name="/tests/">

@@ -177,10 +177,24 @@ public sealed class CaptureIndex(string databasePath)
         await using var connection = CreateConnection(SqliteOpenMode.ReadWrite);
         await connection.OpenAsync(cancellationToken);
         const string sql = """
+        WITH latest_findings AS (
+            SELECT f.identity_key,
+                   f.current_capture_id,
+                   MAX(f.severity) AS severity,
+                   GROUP_CONCAT(f.message, ' ') AS message
+            FROM findings f
+            JOIN devices current_device ON current_device.identity_key = f.identity_key
+            JOIN captures current_capture
+              ON current_capture.identity_key = f.identity_key
+             AND current_capture.capture_id = f.current_capture_id
+            WHERE f.severity >= $minimum_severity
+              AND current_capture.captured_at_utc = current_device.latest_capture_utc
+            GROUP BY f.identity_key, f.current_capture_id
+        )
         INSERT OR IGNORE INTO notification_events (
             event_key, identity_key, model_name, capture_id, severity,
             title, message, recommendation, created_at_utc, delivered_at_utc)
-        SELECT f.identity_key || '|' || f.current_capture_id || '|' || f.code,
+        SELECT f.identity_key || '|' || f.current_capture_id || '|summary',
                f.identity_key,
                COALESCE(d.model_name, 'Unidad sin nombre'),
                f.current_capture_id,
@@ -198,13 +212,9 @@ public sealed class CaptureIndex(string databasePath)
                END,
                $created_at_utc,
                NULL
-        FROM findings f
+        FROM latest_findings f
         JOIN devices d ON d.identity_key = f.identity_key
-        JOIN captures c
-          ON c.identity_key = f.identity_key
-         AND c.capture_id = f.current_capture_id
-        WHERE f.severity >= $minimum_severity
-          AND c.captured_at_utc = d.latest_capture_utc;
+        ;
         """;
         await using var command = connection.CreateCommand();
         command.CommandText = sql;

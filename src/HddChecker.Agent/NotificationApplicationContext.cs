@@ -8,6 +8,7 @@ namespace HddChecker.Agent;
 internal sealed class NotificationApplicationContext : ApplicationContext
 {
     private readonly string databasePath;
+    private readonly string dataRoot;
     private readonly NotifyIcon notifyIcon;
     private readonly System.Windows.Forms.Timer pollTimer;
     private readonly DeliveredNotificationStore deliveredNotifications = new();
@@ -18,6 +19,7 @@ internal sealed class NotificationApplicationContext : ApplicationContext
 
     public NotificationApplicationContext(string dataRoot)
     {
+        this.dataRoot = dataRoot;
         databasePath = Path.Combine(dataRoot, "data", "hdd-checker.db");
         var menu = new ContextMenuStrip();
         menu.Items.Add("Abrir panel", null, (_, _) => OpenConsole());
@@ -170,7 +172,7 @@ internal sealed class NotificationApplicationContext : ApplicationContext
             ? value
             : string.Concat(value.AsSpan(0, maximumLength - 1), "…");
 
-    private static void OpenConsole()
+    private void OpenConsole()
     {
         var executable = ResolveConsoleExecutable();
         if (executable is null)
@@ -183,10 +185,13 @@ internal sealed class NotificationApplicationContext : ApplicationContext
             return;
         }
 
-        Process.Start(new ProcessStartInfo(executable)
+        var startInfo = new ProcessStartInfo(executable)
         {
             UseShellExecute = true,
-        });
+        };
+        startInfo.ArgumentList.Add("--data-root");
+        startInfo.ArgumentList.Add(dataRoot);
+        Process.Start(startInfo);
     }
 
     private static string? ResolveConsoleExecutable()
