@@ -30,6 +30,18 @@ public sealed class LongitudinalTests
     }
 
     [Fact]
+    public void ComparisonReconcilesSerialOnlyCaptureWithLaterWwnCapture()
+    {
+        var previous = CreatePackage("SERIAL-A", null, 10, 30, 0, DateTimeOffset.Parse("2026-01-01T00:00:00Z"));
+        var current = CreatePackage("SERIAL-A", "5-000-test", 11, 31, 0, DateTimeOffset.Parse("2026-01-02T00:00:00Z"));
+
+        var comparison = LongitudinalComparer.Compare(previous, current);
+
+        Assert.Equal("wwn:5000TEST", comparison.Identity.Key);
+        Assert.Equal(1, comparison.PowerOnHoursElapsed);
+    }
+
+    [Fact]
     public void ComparisonRejectsDifferentPhysicalDevices()
     {
         var first = CreatePackage("SERIAL-A", null, 10, 30, 0, DateTimeOffset.Parse("2026-01-01T00:00:00Z"));

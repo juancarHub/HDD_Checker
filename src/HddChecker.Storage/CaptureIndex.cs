@@ -25,6 +25,7 @@ public sealed class CaptureIndex(string databasePath)
         await InitializeSchemaAsync(connection, cancellationToken);
 
         using var transaction = connection.BeginTransaction();
+        await ClearIndexAsync(connection, transaction, cancellationToken);
         foreach (var device in catalog.Devices)
         {
             await UpsertDeviceAsync(connection, transaction, device, cancellationToken);
@@ -41,6 +42,21 @@ public sealed class CaptureIndex(string databasePath)
             catalog.Devices.Count,
             catalog.Devices.Sum(device => device.Captures.Count),
             catalog.Issues.Count);
+    }
+
+    private static async Task ClearIndexAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+        DELETE FROM findings;
+        DELETE FROM captures;
+        DELETE FROM devices;
+        """;
+        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     public async Task<(long Devices, long Captures)> GetCountsAsync(

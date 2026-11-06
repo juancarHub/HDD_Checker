@@ -28,11 +28,15 @@ public static class LongitudinalComparer
         var previousIdentity = DeviceIdentity.FromSnapshot(previous.Snapshot);
         var currentIdentity = DeviceIdentity.FromSnapshot(current.Snapshot);
 
-        if (previousIdentity != currentIdentity)
+        if (!DeviceIdentity.ShareIdentifier(previous.Snapshot, current.Snapshot))
         {
             throw new InvalidOperationException(
                 $"Las capturas pertenecen a unidades diferentes ({previousIdentity.Key} y {currentIdentity.Key}).");
         }
+
+        var comparisonIdentity = DeviceIdentity.SelectPreferred(
+            DeviceIdentity.GetCandidates(previous.Snapshot)
+                .Concat(DeviceIdentity.GetCandidates(current.Snapshot)));
 
         var before = previous.Snapshot;
         var after = current.Snapshot;
@@ -77,7 +81,7 @@ public static class LongitudinalComparer
             .ToArray();
 
         return new LongitudinalComparison(
-            previousIdentity,
+            comparisonIdentity,
             previous.CapturedAtUtc,
             current.CapturedAtUtc,
             calendarElapsed,
