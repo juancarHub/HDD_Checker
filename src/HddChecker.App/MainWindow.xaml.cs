@@ -12,12 +12,14 @@ public partial class MainWindow : Window
 {
     private readonly string databasePath;
     private readonly ObservableCollection<DeviceStatusView> devices = [];
+    private readonly ObservableCollection<MeasurementView> measurements = [];
 
     public MainWindow(string dataRoot)
     {
         InitializeComponent();
         databasePath = Path.Combine(dataRoot, "data", "hdd-checker.db");
         DevicesList.ItemsSource = devices;
+        TimelineGrid.ItemsSource = measurements;
         Loaded += async (_, _) => await RefreshAsync();
     }
 
@@ -54,7 +56,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void DevicesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private async void DevicesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (DevicesList.SelectedItem is not DeviceStatusView device)
         {
@@ -79,6 +81,38 @@ public partial class MainWindow : Window
         LimitationsText.Text = device.Limitations;
         TrajectoryText.Text = device.Trajectory;
         RecommendationText.Text = device.Recommendation;
+        await LoadTimelineAsync(device);
+    }
+
+    private async Task LoadTimelineAsync(DeviceStatusView device)
+    {
+        measurements.Clear();
+        try
+        {
+            var entries = await new CaptureIndex(databasePath)
+                .GetMeasurementsAsync(device.IdentityKey);
+            if (DevicesList.SelectedItem is not DeviceStatusView selected ||
+                selected.IdentityKey != device.IdentityKey)
+            {
+                return;
+            }
+
+            foreach (var entry in entries)
+            {
+                measurements.Add(MeasurementView.FromMeasurement(entry));
+            }
+
+            TimelineSummaryText.Text = entries.Count switch
+            {
+                0 => "Todavía no hay mediciones para esta unidad.",
+                1 => "Primera medición registrada; la tendencia comenzará con la siguiente.",
+                _ => $"{entries.Count} mediciones disponibles, de la más reciente a la más antigua."
+            };
+        }
+        catch (Exception exception)
+        {
+            TimelineSummaryText.Text = $"No se pudo abrir la cronología: {exception.Message}";
+        }
     }
 
     private void ShowEmpty(string message)
@@ -167,5 +201,27 @@ public partial class MainWindow : Window
             items.Count == 0
                 ? emptyText
                 : string.Join(Environment.NewLine, items.Select(item => $"• {item}"));
+    }
+
+    private sealed record MeasurementView(
+        string CapturedAt,
+        string Temperature,
+        string Hours,
+        string Life,
+        string State)
+    {
+        public static MeasurementView FromMeasurement(DeviceMeasurement measurement) => new(
+            measurement.CapturedAtUtc.ToLocalTime().ToString("g"),
+            measurement.TemperatureCelsius is int temperature ? $"{temperature} °C" : "—",
+            measurement.PowerOnHours?.ToString("N0") ?? "—",
+            measurement.RemainingLifePercent is int life ? $"{life} %" : "—",
+            measurement.SmartPassed switch
+            {
+                false => "SMART fallido",
+                true when measurement.AcquisitionOutcome.Equals("Complete", StringComparison.OrdinalIgnoreCase) =>
+                    "Completa",
+                true => "Parcial",
+                _ => "No informado"
+            });
     }
 }

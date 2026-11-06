@@ -93,6 +93,36 @@
                                            TextWrapping="Wrap" Margin="0,5,0,0" />
                             </StackPanel>
                         </Border>
+                        <TextBlock Text="Cronología de mediciones" FontSize="16" FontWeight="SemiBold"
+                                   Margin="0,24,0,4" />
+                        <TextBlock x:Name="TimelineSummaryText" Foreground="{StaticResource SecondaryText}"
+                                   Margin="0,0,0,10" />
+                        <DataGrid x:Name="TimelineGrid" Height="210" AutoGenerateColumns="False"
+                                  IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
+                                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                                  Background="#111827" Foreground="{StaticResource PrimaryText}"
+                                  BorderThickness="0" RowBackground="#111827" AlternatingRowBackground="#182235"
+                                  HorizontalGridLinesBrush="#374151" VerticalGridLinesBrush="#374151">
+                            <DataGrid.Resources>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="#0F172A" />
+                                    <Setter Property="Foreground" Value="#9CA3AF" />
+                                    <Setter Property="Padding" Value="10,8" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                </Style>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="Padding" Value="10,7" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                </Style>
+                            </DataGrid.Resources>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Fecha" Binding="{Binding CapturedAt}" Width="*" />
+                                <DataGridTextColumn Header="Temp." Binding="{Binding Temperature}" Width="80" />
+                                <DataGridTextColumn Header="Horas" Binding="{Binding Hours}" Width="90" />
+                                <DataGridTextColumn Header="Vida" Binding="{Binding Life}" Width="80" />
+                                <DataGridTextColumn Header="Estado" Binding="{Binding State}" Width="120" />
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </StackPanel>
                     </ScrollViewer>
                 </Grid>

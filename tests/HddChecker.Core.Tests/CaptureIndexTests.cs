@@ -26,12 +26,16 @@ public sealed class CaptureIndexTests
             await index.SynchronizeAsync(catalog);
             var counts = await index.GetCountsAsync();
             var statuses = await index.GetStatusesAsync("SYNTHETIC");
+            var measurements = await index.GetMeasurementsAsync(identity.Key);
 
             Assert.Equal(1, counts.Devices);
             Assert.Equal(1, counts.Captures);
             var status = Assert.Single(statuses);
             Assert.Equal("SYNTHETIC ATA", status.ModelName);
             Assert.True(status.SmartPassed);
+            var measurement = Assert.Single(measurements);
+            Assert.Equal("synthetic-capture", measurement.CaptureId);
+            Assert.Equal(25, measurement.TemperatureCelsius);
         }
         finally
         {

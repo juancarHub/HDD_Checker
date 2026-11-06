@@ -117,6 +117,44 @@ public sealed class CaptureIndex(string databasePath)
         return statuses;
     }
 
+    public async Task<IReadOnlyList<DeviceMeasurement>> GetMeasurementsAsync(
+        string identityKey,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(identityKey);
+        await using var connection = CreateConnection(SqliteOpenMode.ReadOnly);
+        await connection.OpenAsync(cancellationToken);
+        const string sql = """
+        SELECT capture_id, captured_at_utc, acquisition_outcome, smart_passed,
+               power_on_hours, temperature_celsius, remaining_life_percent,
+               reallocated_sectors, pending_sectors, nvme_media_errors
+        FROM captures
+        WHERE identity_key = $identity_key
+        ORDER BY captured_at_utc DESC, capture_id DESC;
+        """;
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        Add(command, "$identity_key", identityKey);
+        var measurements = new List<DeviceMeasurement>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            measurements.Add(new DeviceMeasurement(
+                reader.GetString(0),
+                DateTimeOffset.Parse(reader.GetString(1), CultureInfo.InvariantCulture),
+                reader.GetString(2),
+                GetNullableBoolean(reader, 3),
+                GetNullableInt64(reader, 4),
+                GetNullableInt32(reader, 5),
+                GetNullableInt32(reader, 6),
+                GetNullableInt64(reader, 7),
+                GetNullableInt64(reader, 8),
+                GetNullableInt64(reader, 9)));
+        }
+
+        return measurements;
+    }
+
     private static async Task InitializeSchemaAsync(
         SqliteConnection connection,
         CancellationToken cancellationToken)
