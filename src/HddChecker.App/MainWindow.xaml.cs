@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using HddChecker.Core.Analysis;
+using HddChecker.Core.Smartctl;
 using HddChecker.Storage;
 
 namespace HddChecker.App;
@@ -72,7 +73,12 @@ public partial class MainWindow : Window
         CapturesText.Text = device.CaptureCount.ToString();
         ReallocatedText.Text = device.Reallocated;
         PendingText.Text = device.Pending;
-        FindingText.Text = device.Finding;
+        DiagnosisText.Text = device.Diagnosis;
+        ConfidenceText.Text = $"Confianza: {device.Confidence}";
+        ReasonsText.Text = device.Reasons;
+        LimitationsText.Text = device.Limitations;
+        TrajectoryText.Text = device.Trajectory;
+        RecommendationText.Text = device.Recommendation;
     }
 
     private void ShowEmpty(string message)
@@ -95,7 +101,12 @@ public partial class MainWindow : Window
         string RemainingLife,
         string Reallocated,
         string Pending,
-        string Finding)
+        string Diagnosis,
+        string Confidence,
+        string Reasons,
+        string Limitations,
+        string Trajectory,
+        string Recommendation)
     {
         public static DeviceStatusView FromStatus(DeviceStatus status)
         {
@@ -108,6 +119,24 @@ public partial class MainWindow : Window
                 _ => status.SmartPassed is false ? "SMART no aprobado" : "Sin incidencias"
             };
 
+            _ = Enum.TryParse<AcquisitionOutcome>(
+                status.AcquisitionOutcome,
+                true,
+                out var acquisitionOutcome);
+            var assessment = DeviceHealthAssessmentEvaluator.Evaluate(new DeviceHealthSignals(
+                status.SmartPassed,
+                acquisitionOutcome,
+                status.Protocol,
+                status.CaptureCount,
+                status.TemperatureCelsius,
+                status.RemainingLifePercent,
+                status.NvmeAvailableSparePercent,
+                status.ReallocatedSectors,
+                status.PendingSectors,
+                status.NvmeMediaErrors,
+                status.HighestFindingSeverity,
+                status.HighestFindingMessage));
+
             return new DeviceStatusView(
                 status.IdentityKey,
                 status.ModelName ?? "Unidad sin nombre",
@@ -116,12 +145,27 @@ public partial class MainWindow : Window
                 $"{status.Protocol ?? "Desconocido"} · {severity}",
                 severity,
                 status.LatestCaptureUtc.ToLocalTime().ToString("g"),
-                status.TemperatureCelsius is int temperature ? $"{temperature} °C" : "No disponible",
-                status.PowerOnHours?.ToString("N0") ?? "No disponible",
-                status.RemainingLifePercent is int life ? $"{life} %" : "No disponible",
-                status.ReallocatedSectors?.ToString("N0") ?? "No disponible",
-                status.PendingSectors?.ToString("N0") ?? "No disponible",
-                status.HighestFindingMessage ?? "No se han detectado cambios que requieran atención.");
+                status.TemperatureCelsius is int temperature ? $"{temperature} °C" : "No informado",
+                status.PowerOnHours?.ToString("N0") ?? "No informado",
+                status.RemainingLifePercent is int life ? $"{life} %" : "No informado",
+                status.ReallocatedSectors?.ToString("N0") ?? "No informado por la unidad",
+                status.PendingSectors?.ToString("N0") ?? "No informado por la unidad",
+                assessment.Diagnosis,
+                assessment.Confidence switch
+                {
+                    AssessmentConfidence.High => "Alta",
+                    AssessmentConfidence.Partial => "Parcial",
+                    _ => "Limitada"
+                },
+                FormatItems(assessment.Reasons, "No hay motivos suficientes disponibles."),
+                FormatItems(assessment.Limitations, "Ninguna limitación relevante en esta medición."),
+                assessment.Trajectory,
+                assessment.Recommendation);
         }
+
+        private static string FormatItems(IReadOnlyList<string> items, string emptyText) =>
+            items.Count == 0
+                ? emptyText
+                : string.Join(Environment.NewLine, items.Select(item => $"• {item}"));
     }
 }

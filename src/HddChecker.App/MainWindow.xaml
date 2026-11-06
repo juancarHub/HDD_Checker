@@ -58,6 +58,7 @@
                     <TextBlock x:Name="EmptyMessage" Text="No hay datos de supervisión disponibles todavía."
                                Foreground="{StaticResource SecondaryText}" FontSize="16"
                                HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel x:Name="DetailsPanel" Visibility="Collapsed">
                         <TextBlock x:Name="ModelText" FontSize="24" FontWeight="SemiBold" />
                         <TextBlock x:Name="IdentityText" Foreground="{StaticResource SecondaryText}" Margin="0,6,0,24" />
@@ -71,14 +72,29 @@
                             <StackPanel Margin="0,0,24,20"><TextBlock Text="REASIGNADOS" Foreground="{StaticResource SecondaryText}" FontSize="11"/><TextBlock x:Name="ReallocatedText" FontSize="18" Margin="0,5,0,0"/></StackPanel>
                             <StackPanel Margin="0,0,24,20"><TextBlock Text="PENDIENTES" Foreground="{StaticResource SecondaryText}" FontSize="11"/><TextBlock x:Name="PendingText" FontSize="18" Margin="0,5,0,0"/></StackPanel>
                         </UniformGrid>
-                        <Border Background="#111827" CornerRadius="8" Padding="16" Margin="0,10,0,0">
+                        <Border Background="#111827" CornerRadius="8" Padding="18" Margin="0,10,0,0">
                             <StackPanel>
-                                <TextBlock Text="Evaluación" FontWeight="SemiBold" />
-                                <TextBlock x:Name="FindingText" Foreground="{StaticResource SecondaryText}"
-                                           TextWrapping="Wrap" Margin="0,7,0,0" />
+                                <TextBlock Text="Diagnóstico explicado" FontSize="16" FontWeight="SemiBold" />
+                                <TextBlock x:Name="DiagnosisText" FontSize="20" FontWeight="SemiBold"
+                                           Foreground="{StaticResource Accent}" Margin="0,10,0,0" />
+                                <TextBlock x:Name="ConfidenceText" Foreground="{StaticResource SecondaryText}"
+                                           Margin="0,4,0,14" />
+                                <TextBlock Text="Por qué" FontWeight="SemiBold" />
+                                <TextBlock x:Name="ReasonsText" Foreground="{StaticResource SecondaryText}"
+                                           TextWrapping="Wrap" Margin="0,5,0,12" />
+                                <TextBlock Text="Limitaciones" FontWeight="SemiBold" />
+                                <TextBlock x:Name="LimitationsText" Foreground="{StaticResource SecondaryText}"
+                                           TextWrapping="Wrap" Margin="0,5,0,12" />
+                                <TextBlock Text="Trayectoria" FontWeight="SemiBold" />
+                                <TextBlock x:Name="TrajectoryText" Foreground="{StaticResource SecondaryText}"
+                                           TextWrapping="Wrap" Margin="0,5,0,12" />
+                                <TextBlock Text="Recomendación" FontWeight="SemiBold" />
+                                <TextBlock x:Name="RecommendationText" Foreground="{StaticResource SecondaryText}"
+                                           TextWrapping="Wrap" Margin="0,5,0,0" />
                             </StackPanel>
                         </Border>
                     </StackPanel>
+                    </ScrollViewer>
                 </Grid>
             </Border>
         </Grid>
