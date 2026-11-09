@@ -33,6 +33,10 @@ single-instance console. Ordinary users receive read-only access
 to `%ProgramData%\HDD_Checker`; notification delivery state stays under each
 user's `%LocalAppData%\HDD_Checker` profile.
 
+Running `install.ps1` again performs an in-place update: it stops the service,
+panel and agent before replacing binaries, preserves ProgramData, then restarts
+the service and notification agent.
+
 Uninstallation preserves evidence and the SQLite catalog unless `-RemoveData`
 is explicitly supplied:
 

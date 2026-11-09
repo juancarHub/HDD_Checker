@@ -14,6 +14,20 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
     throw 'Ejecuta install.ps1 desde PowerShell como administrador.'
 }
 
+$existingService = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+if ($existingService) {
+    Write-Host 'Actualizando la instalación existente de HDD Checker...'
+    if ($existingService.Status -ne 'Stopped') {
+        Stop-Service -Name $serviceName -Force
+        $existingService.WaitForStatus(
+            [System.ServiceProcess.ServiceControllerStatus]::Stopped,
+            [TimeSpan]::FromSeconds(20))
+    }
+}
+
+Get-Process -Name 'HddChecker.Agent','HddChecker.App' -ErrorAction SilentlyContinue | `
+    Stop-Process -Force
+
 New-Item -ItemType Directory -Path $InstallRoot -Force | Out-Null
 Get-ChildItem -LiteralPath $packageRoot -File | ForEach-Object {
     Copy-Item -LiteralPath $_.FullName -Destination $InstallRoot -Force
@@ -41,7 +55,6 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $serviceExecutable = Join-Path $InstallRoot 'service\HddChecker.Service.exe'
-$existingService = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
 if (-not $existingService) {
     New-Service -Name $serviceName -BinaryPathName ('"{0}"' -f $serviceExecutable) `
         -DisplayName 'HDD Checker' -StartupType Automatic `
