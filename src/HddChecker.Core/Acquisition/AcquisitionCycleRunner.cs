@@ -22,9 +22,15 @@ public sealed class AcquisitionCycleRunner(
         }
 
         var devices = SmartctlJsonParser.ParseScan(scan.StandardOutput);
+        var ignoredExternalDevices = devices
+            .Where(DeviceMonitoringPolicy.IsExternal)
+            .ToArray();
+        var monitoredDevices = devices
+            .Where(device => !DeviceMonitoringPolicy.IsExternal(device))
+            .ToArray();
         var attempts = new List<DeviceAcquisitionAttempt>(devices.Count);
         var capturedIdentities = new HashSet<DeviceIdentity>();
-        foreach (var device in devices)
+        foreach (var device in monitoredDevices)
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
@@ -58,7 +64,11 @@ public sealed class AcquisitionCycleRunner(
             }
         }
 
-        return new AcquisitionCycleResult(startedAt, DateTimeOffset.UtcNow, attempts);
+        return new AcquisitionCycleResult(
+            startedAt,
+            DateTimeOffset.UtcNow,
+            attempts,
+            ignoredExternalDevices);
     }
 
     private async Task<DeviceAcquisitionAttempt> AcquireDeviceAsync(

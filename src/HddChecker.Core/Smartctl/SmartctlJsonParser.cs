@@ -34,7 +34,8 @@ public static class SmartctlJsonParser
             .Select(device => new SmartctlDevice(
                 ReadString(device, "name") ?? string.Empty,
                 ReadString(device, "type"),
-                ReadString(device, "protocol")))
+                ReadString(device, "protocol"),
+                ReadString(device, "info_name")))
             .Where(device => !string.IsNullOrWhiteSpace(device.Name))
             .ToArray();
     }

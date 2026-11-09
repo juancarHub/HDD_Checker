@@ -16,10 +16,12 @@ public sealed class AcquisitionCycleRunnerTests
             var cycle = await new AcquisitionCycleRunner(runner, new AcquisitionPackageWriter())
                 .RunAsync(temporaryDirectory);
 
-            Assert.Equal(3, cycle.DiscoveredCount);
+            Assert.Equal(4, cycle.DiscoveredCount);
             Assert.Equal(1, cycle.CapturedCount);
             Assert.Equal(1, cycle.FailedCount);
             Assert.Equal(1, cycle.DuplicateRouteCount);
+            Assert.Equal(1, cycle.IgnoredExternalCount);
+            Assert.Equal("/dev/usb-test", cycle.IgnoredExternalDevices[0].Name);
             Assert.True(cycle.Attempts[0].Succeeded);
             Assert.False(cycle.Attempts[1].Succeeded);
             Assert.Contains("inaccesible", cycle.Attempts[1].ErrorMessage);
@@ -49,7 +51,9 @@ public sealed class AcquisitionCycleRunnerTests
                     { "devices": [
                       { "name": "/dev/good", "type": "ata", "protocol": "ATA" },
                       { "name": "/dev/bad", "type": "scsi", "protocol": "SCSI" },
-                      { "name": "/dev/good-alias", "type": "ata", "protocol": "ATA" }
+                      { "name": "/dev/good-alias", "type": "ata", "protocol": "ATA" },
+                      { "name": "/dev/usb-test", "type": "sntrealtek", "protocol": "NVMe",
+                        "info_name": "/dev/usb-test [USB NVMe Realtek]" }
                     ] }
                     """, now));
             }

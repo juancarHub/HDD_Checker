@@ -629,6 +629,7 @@ static void PrintCycle(AcquisitionCycleResult cycle)
     Console.WriteLine($"Capturados: {cycle.CapturedCount}");
     Console.WriteLine($"Fallidos: {cycle.FailedCount}");
     Console.WriteLine($"Rutas duplicadas: {cycle.DuplicateRouteCount}");
+    Console.WriteLine($"Externos USB ignorados: {cycle.IgnoredExternalCount}");
     Console.WriteLine();
     foreach (var attempt in cycle.Attempts)
     {

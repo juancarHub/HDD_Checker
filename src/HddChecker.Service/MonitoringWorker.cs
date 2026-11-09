@@ -88,11 +88,13 @@ public sealed class MonitoringWorker(
 
         logger.LogInformation(
             "Ciclo completado: {Captured} capturados, {Failed} fallidos, " +
-            "{Duplicates} rutas duplicadas, {Devices} unidades indexadas y " +
+            "{Duplicates} rutas duplicadas, {External} externos USB ignorados, " +
+            "{Devices} unidades indexadas y " +
             "{Issues} incidencias de catálogo y {Notifications} alertas nuevas.",
             cycle.CapturedCount,
             cycle.FailedCount,
             cycle.DuplicateRouteCount,
+            cycle.IgnoredExternalCount,
             summary.DeviceCount,
             summary.IssueCount,
             queuedNotifications);

@@ -98,6 +98,11 @@ captured. Alternative paths that resolve to the same WWN or serial are reported
 as duplicate routes and stored only once per cycle. This orchestration is
 intended to be reused by the future service.
 
+Automatic cycles deliberately ignore USB and SNT/SAT bridge devices. External
+drives are transient tools in this product and are never captured, indexed,
+shown in the panel or used for notifications. Manual `inspect` and `capture`
+remain available for explicit compatibility laboratory work.
+
 `HddChecker.Service` is the first unattended-monitoring host. It runs one cycle
 when it starts and then waits for the configured interval before the next one;
 cycles never overlap. Its `appsettings.json` controls the smartctl path, command

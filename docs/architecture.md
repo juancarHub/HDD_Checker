@@ -34,7 +34,8 @@ identifiers.
 The acquisition engine is reused by a lightweight Windows service host. It
 executes an immediate cycle followed by configurable, non-overlapping periodic
 cycles. Directly attached system drives are the primary production target. USB
-bridges remain a laboratory and secondary compatibility surface.
+bridges remain a manual laboratory compatibility surface and are excluded from
+automatic monitoring cycles and longitudinal persistence.
 
 The service owns privileged physical-drive access. User interfaces and
 analysis components should remain unprivileged and communicate through a
