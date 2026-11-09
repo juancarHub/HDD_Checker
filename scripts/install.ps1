@@ -57,6 +57,14 @@ if (-not $existingService) {
 $launcher = Join-Path $InstallRoot 'HDD_Checker.exe'
 Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' `
     -Name 'HDD Checker' -Value ('"{0}" /agent' -f $launcher)
+$startMenuShortcut = Join-Path ([Environment]::GetFolderPath('Programs')) 'HDD Checker.lnk'
+$shell = New-Object -ComObject WScript.Shell
+$shortcut = $shell.CreateShortcut($startMenuShortcut)
+$shortcut.TargetPath = $launcher
+$shortcut.Arguments = '/console'
+$shortcut.WorkingDirectory = $InstallRoot
+$shortcut.Description = 'Abrir el panel de supervisión HDD Checker'
+$shortcut.Save()
 Start-Service -Name $serviceName
 Start-Process -FilePath $launcher -ArgumentList '/agent'
 

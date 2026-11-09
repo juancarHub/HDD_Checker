@@ -23,6 +23,8 @@ if ($service) {
 
 Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' `
     -Name 'HDD Checker' -ErrorAction SilentlyContinue
+$startMenuShortcut = Join-Path ([Environment]::GetFolderPath('Programs')) 'HDD Checker.lnk'
+Remove-Item -LiteralPath $startMenuShortcut -Force -ErrorAction SilentlyContinue
 if (Test-Path -LiteralPath $InstallRoot) {
     Remove-Item -LiteralPath $InstallRoot -Recurse -Force
 }

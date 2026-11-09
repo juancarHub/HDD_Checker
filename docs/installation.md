@@ -28,7 +28,8 @@ To preserve and migrate an existing development history:
 ```
 
 The service starts automatically with a delayed start. The notification agent
-starts for the current user at sign-in. Ordinary users receive read-only access
+starts for the current user at sign-in, and a Start menu shortcut opens the
+single-instance console. Ordinary users receive read-only access
 to `%ProgramData%\HDD_Checker`; notification delivery state stays under each
 user's `%LocalAppData%\HDD_Checker` profile.
 
