@@ -25,13 +25,15 @@ Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' 
     -Name 'HDD Checker' -ErrorAction SilentlyContinue
 $startMenuShortcut = Join-Path ([Environment]::GetFolderPath('Programs')) 'HDD Checker.lnk'
 Remove-Item -LiteralPath $startMenuShortcut -Force -ErrorAction SilentlyContinue
+Get-Process -Name 'HddChecker.Agent','HddChecker.App' -ErrorAction SilentlyContinue | `
+    Stop-Process -Force
 if (Test-Path -LiteralPath $InstallRoot) {
     Remove-Item -LiteralPath $InstallRoot -Recurse -Force
 }
 
 if ($RemoveData -and (Test-Path -LiteralPath $DataRoot)) {
     Remove-Item -LiteralPath $DataRoot -Recurse -Force
-    Write-Host 'También se eliminaron las capturas y el catálogo local.'
+    Write-Host 'Tambien se eliminaron las capturas y el catalogo local.'
 } else {
     Write-Host "Datos conservados en: $DataRoot"
 }

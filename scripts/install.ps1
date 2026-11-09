@@ -16,7 +16,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 
 $existingService = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
 if ($existingService) {
-    Write-Host 'Actualizando la instalación existente de HDD Checker...'
+    Write-Host 'Actualizando la instalacion existente de HDD Checker...'
     if ($existingService.Status -ne 'Stopped') {
         Stop-Service -Name $serviceName -Force
         $existingService.WaitForStatus(
@@ -51,14 +51,14 @@ if ($MigrateDataFrom) {
 
 & icacls.exe $DataRoot /grant '*S-1-5-32-545:(OI)(CI)RX' /T | Out-Null
 if ($LASTEXITCODE -ne 0) {
-    throw 'No se pudieron establecer los permisos de lectura del catálogo.'
+    throw 'No se pudieron establecer los permisos de lectura del catalogo.'
 }
 
 $serviceExecutable = Join-Path $InstallRoot 'service\HddChecker.Service.exe'
 if (-not $existingService) {
     New-Service -Name $serviceName -BinaryPathName ('"{0}"' -f $serviceExecutable) `
         -DisplayName 'HDD Checker' -StartupType Automatic `
-        -Description 'Supervisión preventiva SMART y longitudinal de unidades de almacenamiento.' | Out-Null
+        -Description 'Supervision preventiva SMART y longitudinal de unidades de almacenamiento.' | Out-Null
 } else {
     if ($existingService.Status -ne 'Stopped') {
         Stop-Service -Name $serviceName -Force
@@ -76,10 +76,10 @@ $shortcut = $shell.CreateShortcut($startMenuShortcut)
 $shortcut.TargetPath = $launcher
 $shortcut.Arguments = '/console'
 $shortcut.WorkingDirectory = $InstallRoot
-$shortcut.Description = 'Abrir el panel de supervisión HDD Checker'
+$shortcut.Description = 'Abrir el panel de supervision HDD Checker'
 $shortcut.Save()
 Start-Service -Name $serviceName
 Start-Process -FilePath $launcher -ArgumentList '/agent'
 
 Write-Host "HDD Checker instalado en: $InstallRoot"
-Write-Host "Datos de supervisión en: $DataRoot"
+Write-Host "Datos de supervision en: $DataRoot"

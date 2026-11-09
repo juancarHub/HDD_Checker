@@ -9,10 +9,10 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $packageRoot = Join-Path $projectRoot "artifacts\package-$Runtime"
 
 if (Test-Path -LiteralPath $packageRoot) {
-    Remove-Item -LiteralPath $packageRoot -Recurse -Force
+    Get-ChildItem -LiteralPath $packageRoot -Force | Remove-Item -Recurse -Force
+} else {
+    New-Item -ItemType Directory -Path $packageRoot | Out-Null
 }
-
-New-Item -ItemType Directory -Path $packageRoot | Out-Null
 
 $projects = @(
     @{ Project = 'src\HddChecker.Launcher'; Output = '.' },
