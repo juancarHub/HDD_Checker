@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <AssemblyName>STHolmes.Cli</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\HddChecker.Core\HddChecker.Core.csproj" />

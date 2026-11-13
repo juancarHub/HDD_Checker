@@ -4,7 +4,7 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddWindowsService(options =>
 {
-    options.ServiceName = "HDD Checker";
+    options.ServiceName = "ST_Holmes";
 });
 
 builder.Services
@@ -14,8 +14,6 @@ builder.Services
         "Monitoring:IntervalMinutes debe estar entre 1 y 10080.")
     .Validate(options => options.TimeoutSeconds is >= 1 and <= 300,
         "Monitoring:TimeoutSeconds debe estar entre 1 y 300.")
-    .Validate(options => !string.IsNullOrWhiteSpace(options.SmartctlPath),
-        "Monitoring:SmartctlPath es obligatorio.")
     .ValidateOnStart();
 
 builder.Services.AddHostedService<MonitoringWorker>();

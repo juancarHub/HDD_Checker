@@ -3,6 +3,8 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>STHolmes.Agent</AssemblyName>
+    <ApplicationIcon>..\..\assets\ST_Holmes.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\HddChecker.Storage\HddChecker.Storage.csproj" />

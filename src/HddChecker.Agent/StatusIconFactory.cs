@@ -22,15 +22,15 @@ internal static class StatusIconFactory
 
         graphics.FillEllipse(background, 1, 1, 30, 30);
         graphics.DrawEllipse(outline, 2, 2, 28, 28);
-        graphics.DrawRoundedRectangle(outline, new RectangleF(7, 8, 18, 16), 3);
+        graphics.DrawEllipse(outline, 6, 5, 16, 16);
+        graphics.DrawLine(detail, 19, 19, 25, 25);
         graphics.DrawLines(detail,
         [
-            new PointF(9, 17),
-            new PointF(12, 17),
-            new PointF(14, 13),
-            new PointF(17, 20),
-            new PointF(19, 16),
-            new PointF(23, 16),
+            new PointF(9, 15),
+            new PointF(12, 15),
+            new PointF(14, 11),
+            new PointF(17, 17),
+            new PointF(20, 13),
         ]);
 
         var handle = bitmap.GetHicon();
@@ -48,20 +48,4 @@ internal static class StatusIconFactory
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool DestroyIcon(IntPtr handle);
-
-    private static void DrawRoundedRectangle(
-        this Graphics graphics,
-        Pen pen,
-        RectangleF rectangle,
-        float radius)
-    {
-        using var path = new GraphicsPath();
-        var diameter = radius * 2;
-        path.AddArc(rectangle.Left, rectangle.Top, diameter, diameter, 180, 90);
-        path.AddArc(rectangle.Right - diameter, rectangle.Top, diameter, diameter, 270, 90);
-        path.AddArc(rectangle.Right - diameter, rectangle.Bottom - diameter, diameter, diameter, 0, 90);
-        path.AddArc(rectangle.Left, rectangle.Bottom - diameter, diameter, diameter, 90, 90);
-        path.CloseFigure();
-        graphics.DrawPath(pen, path);
-    }
 }

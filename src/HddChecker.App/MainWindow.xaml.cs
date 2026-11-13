@@ -28,7 +28,9 @@ public partial class MainWindow : Window
     public MainWindow(string dataRoot)
     {
         InitializeComponent();
-        databasePath = Path.Combine(dataRoot, "data", "hdd-checker.db");
+        var renamedDatabase = Path.Combine(dataRoot, "data", "st-holmes.db");
+        var legacyDatabase = Path.Combine(dataRoot, "data", "hdd-checker.db");
+        databasePath = File.Exists(renamedDatabase) ? renamedDatabase : legacyDatabase;
         DevicesList.ItemsSource = devices;
         TimelineGrid.ItemsSource = measurements;
         IncidentGrid.ItemsSource = incidents;

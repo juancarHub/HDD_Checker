@@ -14,7 +14,7 @@ internal sealed class IncidentAlertForm : Form
             _ => Color.FromArgb(34, 197, 94),
         };
 
-        Text = "HDD Checker";
+        Text = "ST_Holmes";
         Size = new Size(470, 270);
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;

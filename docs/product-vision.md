@@ -1,8 +1,10 @@
 # Product vision
 
-`HDD_Checker` is the current working name. A more distinctive public name will
-be chosen when the product identity, interface and distribution model are more
-mature. Renaming must not obscure repository history or stable data schemas.
+`ST_Holmes` is the public project name. `ST` evokes Storage Trajectory, while
+Holmes represents the product's evidence-led investigation of device history.
+The underscore gives the utility a technical identity and keeps a visible link
+to its original working name without obscuring repository history or stable data
+schemas.
 
 ## Differentiator
 

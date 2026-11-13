@@ -4,8 +4,7 @@ public sealed class MonitoringOptions
 {
     public const string SectionName = "Monitoring";
 
-    public string SmartctlPath { get; init; } =
-        @"C:\Program Files\smartmontools\bin\smartctl.exe";
+    public string? SmartctlPath { get; init; }
 
     public int TimeoutSeconds { get; init; } = 30;
 

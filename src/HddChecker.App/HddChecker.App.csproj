@@ -3,8 +3,13 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <AssemblyName>STHolmes.App</AssemblyName>
+    <ApplicationIcon>..\..\assets\ST_Holmes.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\HddChecker.Storage\HddChecker.Storage.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="..\..\assets\ST_Holmes.ico" Link="Assets\ST_Holmes.ico" />
   </ItemGroup>
 </Project>

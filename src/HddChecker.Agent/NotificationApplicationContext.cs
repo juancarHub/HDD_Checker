@@ -20,7 +20,9 @@ internal sealed class NotificationApplicationContext : ApplicationContext
     public NotificationApplicationContext(string dataRoot)
     {
         this.dataRoot = dataRoot;
-        databasePath = Path.Combine(dataRoot, "data", "hdd-checker.db");
+        var renamedDatabase = Path.Combine(dataRoot, "data", "st-holmes.db");
+        var legacyDatabase = Path.Combine(dataRoot, "data", "hdd-checker.db");
+        databasePath = File.Exists(renamedDatabase) ? renamedDatabase : legacyDatabase;
         var menu = new ContextMenuStrip();
         menu.Items.Add("Abrir panel", null, (_, _) => OpenConsole());
         var previewMenu = new ToolStripMenuItem("Probar avisos");
@@ -37,7 +39,7 @@ internal sealed class NotificationApplicationContext : ApplicationContext
 
         notifyIcon = new NotifyIcon
         {
-            Text = "HDD Checker",
+            Text = "ST_Holmes",
             Visible = true,
             ContextMenuStrip = menu,
         };
@@ -52,7 +54,7 @@ internal sealed class NotificationApplicationContext : ApplicationContext
         notifyIcon.ShowBalloonTip(
             5_000,
             "Supervisión activa",
-            "HDD Checker vigila las unidades y mostrará aquí cualquier incidencia nueva.",
+            "ST_Holmes investiga la trayectoria de las unidades y mostrará aquí cualquier incidencia nueva.",
             ToolTipIcon.Info);
         _ = PollAsync();
     }
@@ -178,8 +180,8 @@ internal sealed class NotificationApplicationContext : ApplicationContext
         if (executable is null)
         {
             MessageBox.Show(
-                "No se encontró la interfaz de HDD Checker.",
-                "HDD Checker",
+                "No se encontró la interfaz de ST_Holmes.",
+                "ST_Holmes",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
             return;
@@ -196,7 +198,7 @@ internal sealed class NotificationApplicationContext : ApplicationContext
 
     private static string? ResolveConsoleExecutable()
     {
-        var packaged = Path.Combine(AppContext.BaseDirectory, "HddChecker.App.exe");
+        var packaged = Path.Combine(AppContext.BaseDirectory, "STHolmes.App.exe");
         if (File.Exists(packaged))
         {
             return packaged;
@@ -206,7 +208,7 @@ internal sealed class NotificationApplicationContext : ApplicationContext
             AppContext.BaseDirectory,
             "..",
             "app",
-            "HddChecker.App.exe"));
+            "STHolmes.App.exe"));
         if (File.Exists(packagedSibling))
         {
             return packagedSibling;
@@ -227,7 +229,7 @@ internal sealed class NotificationApplicationContext : ApplicationContext
                 "bin",
                 configuration,
                 "net10.0-windows",
-                "HddChecker.App.exe");
+                "STHolmes.App.exe");
             if (File.Exists(candidate))
             {
                 return candidate;

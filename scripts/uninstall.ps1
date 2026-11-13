@@ -1,12 +1,13 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [string]$InstallRoot = (Join-Path $env:ProgramFiles 'HDD Checker'),
-    [string]$DataRoot = (Join-Path $env:ProgramData 'HDD_Checker'),
-    [switch]$RemoveData
+    [string]$InstallRoot = (Join-Path $env:ProgramFiles 'ST_Holmes'),
+    [string]$DataRoot = (Join-Path $env:ProgramData 'ST_Holmes'),
+    [switch]$RemoveData,
+    [switch]$SkipFileRemoval
 )
 
 $ErrorActionPreference = 'Stop'
-$serviceName = 'HddChecker'
+$serviceName = 'STHolmes'
 $principal = New-Object Security.Principal.WindowsPrincipal(
     [Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
@@ -22,12 +23,12 @@ if ($service) {
 }
 
 Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' `
-    -Name 'HDD Checker' -ErrorAction SilentlyContinue
-$startMenuShortcut = Join-Path ([Environment]::GetFolderPath('Programs')) 'HDD Checker.lnk'
+    -Name 'ST_Holmes' -ErrorAction SilentlyContinue
+$startMenuShortcut = Join-Path ([Environment]::GetFolderPath('Programs')) 'ST_Holmes.lnk'
 Remove-Item -LiteralPath $startMenuShortcut -Force -ErrorAction SilentlyContinue
-Get-Process -Name 'HddChecker.Agent','HddChecker.App' -ErrorAction SilentlyContinue | `
+Get-Process -Name 'STHolmes.Agent','STHolmes.App' -ErrorAction SilentlyContinue | `
     Stop-Process -Force
-if (Test-Path -LiteralPath $InstallRoot) {
+if (-not $SkipFileRemoval -and (Test-Path -LiteralPath $InstallRoot)) {
     Remove-Item -LiteralPath $InstallRoot -Recurse -Force
 }
 

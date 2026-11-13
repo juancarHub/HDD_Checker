@@ -1,6 +1,6 @@
 # Architecture
 
-HDD_Checker separates evidence acquisition from interpretation and longitudinal
+ST_Holmes separates evidence acquisition from interpretation and longitudinal
 analysis. This allows raw SMART data to be reinterpreted as normalization rules
 improve without altering the original measurement.
 

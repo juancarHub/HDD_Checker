@@ -14,8 +14,8 @@ internal static class DataRootResolver
 
         var installedDataRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "HDD_Checker");
-        if (File.Exists(Path.Combine(installedDataRoot, "data", "hdd-checker.db")))
+            "ST_Holmes");
+        if (HasDatabase(installedDataRoot))
         {
             return installedDataRoot;
         }
@@ -23,6 +23,10 @@ internal static class DataRootResolver
         var developmentRoot = FindDevelopmentRoot();
         return developmentRoot ?? installedDataRoot;
     }
+
+    private static bool HasDatabase(string root) =>
+        File.Exists(Path.Combine(root, "data", "st-holmes.db")) ||
+        File.Exists(Path.Combine(root, "data", "hdd-checker.db"));
 
     public static string? FindDevelopmentRoot()
     {

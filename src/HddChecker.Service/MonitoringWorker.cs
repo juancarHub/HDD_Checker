@@ -15,7 +15,7 @@ public sealed class MonitoringWorker(
     {
         var dataRoot = ResolveDataRoot(options.DataRoot);
         var capturesRoot = Path.Combine(dataRoot, "captures");
-        var databasePath = Path.Combine(dataRoot, "data", "hdd-checker.db");
+        var databasePath = ResolveDatabasePath(dataRoot);
         var interval = TimeSpan.FromMinutes(options.IntervalMinutes);
 
         logger.LogInformation(
@@ -57,7 +57,7 @@ public sealed class MonitoringWorker(
         CancellationToken cancellationToken)
     {
         var smartctl = new SmartctlRunner(
-            options.SmartctlPath,
+            ResolveSmartctlPath(options.SmartctlPath),
             TimeSpan.FromSeconds(options.TimeoutSeconds));
         var cycle = await new AcquisitionCycleRunner(smartctl, new AcquisitionPackageWriter())
             .RunAsync(capturesRoot, cancellationToken);
@@ -109,6 +109,45 @@ public sealed class MonitoringWorker(
 
         return Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "HDD_Checker");
+            "ST_Holmes");
+    }
+
+    private static string ResolveDatabasePath(string dataRoot)
+    {
+        var database = Path.Combine(dataRoot, "data", "st-holmes.db");
+        var legacyDatabase = Path.Combine(dataRoot, "data", "hdd-checker.db");
+        if (!File.Exists(database) && File.Exists(legacyDatabase))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(database)!);
+            File.Copy(legacyDatabase, database);
+        }
+
+        return database;
+    }
+
+    private static string ResolveSmartctlPath(string? configuredPath)
+    {
+        if (!string.IsNullOrWhiteSpace(configuredPath))
+        {
+            return Path.GetFullPath(configuredPath);
+        }
+
+        var bundled = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "..",
+            "tools",
+            "smartmontools",
+            "bin",
+            "smartctl.exe"));
+        if (File.Exists(bundled))
+        {
+            return bundled;
+        }
+
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            "smartmontools",
+            "bin",
+            "smartctl.exe");
     }
 }

@@ -4,7 +4,7 @@ namespace HddChecker.Agent;
 
 internal static class Program
 {
-    private const string InstanceName = @"Local\HddChecker.NotificationAgent.Instance";
+    private const string InstanceName = @"Local\STHolmes.NotificationAgent.Instance";
 
     [STAThread]
     private static void Main(string[] args)

@@ -6,8 +6,8 @@ namespace HddChecker.App;
 
 public partial class App : Application
 {
-    private const string InstanceName = @"Local\HddChecker.Console.Instance";
-    private const string ActivationName = @"Local\HddChecker.Console.Activate";
+    private const string InstanceName = @"Local\STHolmes.Console.Instance";
+    private const string ActivationName = @"Local\STHolmes.Console.Activate";
     private Mutex? instanceMutex;
     private bool ownsInstance;
     private EventWaitHandle? activationEvent;
@@ -98,8 +98,8 @@ public partial class App : Application
 
         var installedDataRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "HDD_Checker");
-        if (File.Exists(Path.Combine(installedDataRoot, "data", "hdd-checker.db")))
+            "ST_Holmes");
+        if (HasDatabase(installedDataRoot))
         {
             return installedDataRoot;
         }
@@ -107,11 +107,15 @@ public partial class App : Application
         var developmentRoot = Path.GetFullPath(
             Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
         if (Directory.Exists(Path.Combine(developmentRoot, ".git")) &&
-            File.Exists(Path.Combine(developmentRoot, "data", "hdd-checker.db")))
+            HasDatabase(developmentRoot))
         {
             return developmentRoot;
         }
 
         return installedDataRoot;
     }
+
+    private static bool HasDatabase(string root) =>
+        File.Exists(Path.Combine(root, "data", "st-holmes.db")) ||
+        File.Exists(Path.Combine(root, "data", "hdd-checker.db"));
 }

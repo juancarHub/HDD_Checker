@@ -177,11 +177,13 @@ public sealed class CaptureIndex(string databasePath)
         await using var connection = CreateConnection(SqliteOpenMode.ReadWrite);
         await connection.OpenAsync(cancellationToken);
         const string sql = """
-        WITH latest_findings AS (
+        WITH eligible_findings AS (
             SELECT f.identity_key,
+                   f.previous_capture_id,
                    f.current_capture_id,
-                   MAX(f.severity) AS severity,
-                   GROUP_CONCAT(f.message, ' ') AS message
+                   f.code,
+                   f.severity,
+                   f.message
             FROM findings f
             JOIN devices current_device ON current_device.identity_key = f.identity_key
             JOIN captures current_capture
@@ -189,6 +191,34 @@ public sealed class CaptureIndex(string databasePath)
              AND current_capture.capture_id = f.current_capture_id
             WHERE f.severity >= $minimum_severity
               AND current_capture.captured_at_utc = current_device.latest_capture_utc
+              AND (
+                  f.previous_capture_id <> f.current_capture_id
+                  OR NOT EXISTS (
+                      SELECT 1
+                      FROM findings previous_finding
+                      WHERE previous_finding.identity_key = f.identity_key
+                        AND previous_finding.current_capture_id = (
+                            SELECT previous_capture.capture_id
+                            FROM captures previous_capture
+                            WHERE previous_capture.identity_key = f.identity_key
+                              AND (
+                                  previous_capture.captured_at_utc < current_capture.captured_at_utc
+                                  OR (
+                                      previous_capture.captured_at_utc = current_capture.captured_at_utc
+                                      AND previous_capture.capture_id < current_capture.capture_id))
+                            ORDER BY previous_capture.captured_at_utc DESC,
+                                     previous_capture.capture_id DESC
+                            LIMIT 1)
+                        AND previous_finding.previous_capture_id = previous_finding.current_capture_id
+                        AND previous_finding.code = f.code
+                        AND previous_finding.message = f.message))
+        ),
+        latest_findings AS (
+            SELECT f.identity_key,
+                   f.current_capture_id,
+                   MAX(f.severity) AS severity,
+                   GROUP_CONCAT(f.message, ' ') AS message
+            FROM eligible_findings f
             GROUP BY f.identity_key, f.current_capture_id
         )
         INSERT OR IGNORE INTO notification_events (

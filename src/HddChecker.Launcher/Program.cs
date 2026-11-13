@@ -6,7 +6,7 @@ namespace HddChecker.Launcher;
 
 internal static class Program
 {
-    private const string ServiceName = "HddChecker";
+    private const string ServiceName = "STHolmes";
 
     [STAThread]
     private static int Main(string[] args)
@@ -15,19 +15,19 @@ internal static class Program
         var command = args.FirstOrDefault();
         if (command?.Equals("/console", StringComparison.OrdinalIgnoreCase) is true)
         {
-            return LaunchComponent("app", "HddChecker.App.exe");
+            return LaunchComponent("app", "STHolmes.App.exe", "HddChecker.App");
         }
 
         if (command?.Equals("/agent", StringComparison.OrdinalIgnoreCase) is true)
         {
-            return LaunchComponent("agent", "HddChecker.Agent.exe");
+            return LaunchComponent("agent", "STHolmes.Agent.exe", "HddChecker.Agent");
         }
 
         if (command is not null)
         {
             MessageBox.Show(
-                "Uso: HDD_Checker.exe [/console | /agent]",
-                "HDD Checker",
+                "Uso: ST_Holmes.exe [/console | /agent]",
+                "ST_Holmes",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
             return 2;
@@ -38,7 +38,7 @@ internal static class Program
             return 1;
         }
 
-        return LaunchComponent("agent", "HddChecker.Agent.exe");
+        return LaunchComponent("agent", "STHolmes.Agent.exe", "HddChecker.Agent");
     }
 
     private static bool EnsureServiceRunning()
@@ -62,9 +62,9 @@ internal static class Program
         catch (InvalidOperationException)
         {
             MessageBox.Show(
-                "El servicio de HDD Checker todavía no está instalado. " +
+                "El servicio de ST_Holmes todavía no está instalado. " +
                 "Ejecuta el instalador como administrador.",
-                "HDD Checker",
+                "ST_Holmes",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
             return false;
@@ -73,21 +73,24 @@ internal static class Program
         {
             MessageBox.Show(
                 $"No se pudo iniciar el servicio. {exception.Message}",
-                "HDD Checker",
+                "ST_Holmes",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
             return false;
         }
     }
 
-    private static int LaunchComponent(string directoryName, string executableName)
+    private static int LaunchComponent(
+        string directoryName,
+        string executableName,
+        string projectDirectoryName)
     {
-        var executable = ResolveComponent(directoryName, executableName);
+        var executable = ResolveComponent(directoryName, executableName, projectDirectoryName);
         if (executable is null)
         {
             MessageBox.Show(
-                $"No se encontró {executableName}. Repara o reinstala HDD Checker.",
-                "HDD Checker",
+                $"No se encontró {executableName}. Repara o reinstala ST_Holmes.",
+                "ST_Holmes",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
             return 1;
@@ -97,7 +100,10 @@ internal static class Program
         return 0;
     }
 
-    private static string? ResolveComponent(string directoryName, string executableName)
+    private static string? ResolveComponent(
+        string directoryName,
+        string executableName,
+        string projectDirectoryName)
     {
         var installed = Path.Combine(AppContext.BaseDirectory, directoryName, executableName);
         if (File.Exists(installed))
@@ -116,7 +122,7 @@ internal static class Program
             var candidate = Path.Combine(
                 root,
                 "src",
-                executableName.Replace(".exe", string.Empty, StringComparison.OrdinalIgnoreCase),
+                projectDirectoryName,
                 "bin",
                 configuration,
                 "net10.0-windows",

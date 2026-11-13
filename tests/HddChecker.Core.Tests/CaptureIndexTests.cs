@@ -78,6 +78,57 @@ public sealed class CaptureIndexTests
         }
     }
 
+    [Fact]
+    public async Task StableReallocatedSectorsRemainVisibleWithoutRepeatingNotification()
+    {
+        var temporaryDirectory = Path.Combine(Path.GetTempPath(), $"hdd-checker-stable-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(temporaryDirectory);
+        try
+        {
+            var first = CreateReallocatedPackage("reallocated-1", "2026-01-01T00:00:00Z", 5);
+            var identity = DeviceIdentity.FromSnapshot(first.Snapshot);
+            var index = new CaptureIndex(Path.Combine(temporaryDirectory, "test.db"));
+
+            await SynchronizeAsync(index, identity, first);
+            Assert.Equal(1, await index.QueueLatestNotificationsAsync());
+
+            var stable = CreateReallocatedPackage("reallocated-2", "2026-01-02T00:00:00Z", 5);
+            await SynchronizeAsync(index, identity, first, stable);
+            Assert.Equal(0, await index.QueueLatestNotificationsAsync());
+
+            var status = Assert.Single(await index.GetStatusesAsync());
+            Assert.Equal(FindingSeverity.Attention, status.HighestFindingSeverity);
+            Assert.Contains("sectores reasignados: 5", status.HighestFindingMessage);
+            Assert.Single(await index.GetNotificationHistoryAsync(identity.Key));
+
+            var increased = CreateReallocatedPackage("reallocated-3", "2026-01-03T00:00:00Z", 7);
+            await SynchronizeAsync(index, identity, first, stable, increased);
+            Assert.Equal(1, await index.QueueLatestNotificationsAsync());
+
+            var history = await index.GetNotificationHistoryAsync(identity.Key);
+            Assert.Equal(2, history.Count);
+            Assert.Contains("Incremento: +2", history[0].Message);
+        }
+        finally
+        {
+            Directory.Delete(temporaryDirectory, recursive: true);
+        }
+    }
+
+    private static async Task SynchronizeAsync(
+        CaptureIndex index,
+        DeviceIdentity identity,
+        params AcquisitionPackage[] packages)
+    {
+        var captures = packages
+            .Select(package => new CaptureCatalogEntry(package.CaptureId, identity, package))
+            .ToArray();
+        var catalog = new CaptureCatalog(
+            [new DeviceCaptureHistory(identity, captures)],
+            []);
+        await index.SynchronizeAsync(catalog);
+    }
+
     private static AcquisitionPackage CreatePackage()
     {
         const string json = """
@@ -122,6 +173,38 @@ public sealed class CaptureIndexTests
         return new AcquisitionPackage(
             1,
             "synthetic-warning-capture",
+            timestamp,
+            new AcquisitionCommandMetadata("smartctl", [], timestamp, timestamp, 0, false),
+            SmartctlResultAssessment.FromExitCode(0),
+            SmartctlJsonParser.ParseSnapshot(json));
+    }
+
+    private static AcquisitionPackage CreateReallocatedPackage(
+        string captureId,
+        string timestampText,
+        long reallocatedSectors)
+    {
+        var json = $$"""
+        {
+          "device": { "name": "/dev/test", "type": "ata", "protocol": "ATA" },
+          "model_name": "SYNTHETIC REALLOCATED ATA",
+          "serial_number": "SYNTHETIC-REALLOCATED-001",
+          "smart_status": { "passed": true },
+          "power_on_time": { "hours": 20 },
+          "temperature": { "current": 30 },
+          "ata_smart_attributes": {
+            "table": [
+              { "id": 5, "name": "Reallocated_Sector_Ct", "value": 100,
+                "worst": 100, "thresh": 0,
+                "raw": { "value": {{reallocatedSectors}}, "string": "{{reallocatedSectors}}" } }
+            ]
+          }
+        }
+        """;
+        var timestamp = DateTimeOffset.Parse(timestampText);
+        return new AcquisitionPackage(
+            1,
+            captureId,
             timestamp,
             new AcquisitionCommandMetadata("smartctl", [], timestamp, timestamp, 0, false),
             SmartctlResultAssessment.FromExitCode(0),

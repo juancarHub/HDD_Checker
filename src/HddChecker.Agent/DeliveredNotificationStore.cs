@@ -9,7 +9,7 @@ internal sealed class DeliveredNotificationStore
     {
         var directory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "HDD_Checker");
+            "ST_Holmes");
         Directory.CreateDirectory(directory);
         path = Path.Combine(directory, "delivered-notifications.txt");
         delivered = File.Exists(path)

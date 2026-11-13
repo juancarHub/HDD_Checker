@@ -5,7 +5,7 @@ using HddChecker.Storage;
 var severity = args.FirstOrDefault()?.ToLowerInvariant() ?? "warning";
 if (severity is not ("attention" or "warning" or "critical"))
 {
-    Console.Error.WriteLine("Uso: HddChecker.Simulator [attention|warning|critical]");
+    Console.Error.WriteLine("Uso: STHolmes.Simulator [attention|warning|critical]");
     return 2;
 }
 
@@ -13,7 +13,7 @@ var simulationRoot = Path.GetFullPath(Path.Combine(
     "artifacts",
     $"simulation-{severity}-{DateTimeOffset.UtcNow:yyyyMMddTHHmmssZ}"));
 var capturesRoot = Path.Combine(simulationRoot, "captures");
-var databasePath = Path.Combine(simulationRoot, "data", "hdd-checker.db");
+var databasePath = Path.Combine(simulationRoot, "data", "st-holmes.db");
 var firstTimestamp = DateTimeOffset.UtcNow.AddDays(-1);
 var secondTimestamp = DateTimeOffset.UtcNow;
 

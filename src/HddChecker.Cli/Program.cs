@@ -58,7 +58,7 @@ try
         var index = new CaptureIndex(parsed.DatabasePath);
         if (!File.Exists(index.DatabasePath))
         {
-            Console.Error.WriteLine("El índice SQLite no existe. Ejecuta primero: hdd-checker index");
+            Console.Error.WriteLine("El índice SQLite no existe. Ejecuta primero: st-holmes index");
             return 2;
         }
 
@@ -250,12 +250,12 @@ static (
 {
     if (arguments.Length == 0 || arguments.Any(argument => argument is "-h" or "--help"))
     {
-        return (string.Empty, null, null, null, DefaultSmartctlPath, "captures", "data/hdd-checker.db", 30, true);
+        return (string.Empty, null, null, null, DefaultSmartctlPath, "captures", "data/st-holmes.db", 30, true);
     }
 
     var smartctlPath = DefaultSmartctlPath;
     var capturesRoot = "captures";
-    var databasePath = "data/hdd-checker.db";
+    var databasePath = "data/st-holmes.db";
     var timeoutSeconds = 30d;
     string? deviceType = null;
     var positional = new List<string>();
@@ -667,19 +667,19 @@ static string FormatPercent(int? value) => value is null ? "no disponible" : $"{
 
 static void PrintHelp()
 {
-    Console.WriteLine("HDD_Checker acquisition laboratory");
+    Console.WriteLine("ST_Holmes acquisition laboratory");
     Console.WriteLine();
     Console.WriteLine("Uso:");
-    Console.WriteLine("  hdd-checker scan [--smartctl <ruta>]");
-    Console.WriteLine("  hdd-checker inspect <dispositivo> [--device-type <tipo>] [--smartctl <ruta>]");
-    Console.WriteLine("  hdd-checker capture <dispositivo> [--device-type <tipo>] [--captures <carpeta>] [--smartctl <ruta>]");
-    Console.WriteLine("  hdd-checker show <carpeta-de-captura>");
-    Console.WriteLine("  hdd-checker compare <captura-anterior> <captura-actual>");
-    Console.WriteLine("  hdd-checker history [filtro] [--captures <carpeta>]");
-    Console.WriteLine("  hdd-checker trend <modelo-o-identidad> [--captures <carpeta>]");
-    Console.WriteLine("  hdd-checker index [--captures <carpeta>] [--database <archivo.db>]");
-    Console.WriteLine("  hdd-checker status [filtro] [--database <archivo.db>]");
-    Console.WriteLine("  hdd-checker collect [--captures <carpeta>] [--database <archivo.db>]");
+    Console.WriteLine("  st-holmes scan [--smartctl <ruta>]");
+    Console.WriteLine("  st-holmes inspect <dispositivo> [--device-type <tipo>] [--smartctl <ruta>]");
+    Console.WriteLine("  st-holmes capture <dispositivo> [--device-type <tipo>] [--captures <carpeta>] [--smartctl <ruta>]");
+    Console.WriteLine("  st-holmes show <carpeta-de-captura>");
+    Console.WriteLine("  st-holmes compare <captura-anterior> <captura-actual>");
+    Console.WriteLine("  st-holmes history [filtro] [--captures <carpeta>]");
+    Console.WriteLine("  st-holmes trend <modelo-o-identidad> [--captures <carpeta>]");
+    Console.WriteLine("  st-holmes index [--captures <carpeta>] [--database <archivo.db>]");
+    Console.WriteLine("  st-holmes status [filtro] [--database <archivo.db>]");
+    Console.WriteLine("  st-holmes collect [--captures <carpeta>] [--database <archivo.db>]");
     Console.WriteLine();
     Console.WriteLine("Opciones de adquisición:");
     Console.WriteLine("  --timeout-seconds <n>  Tiempo máximo por consulta (predeterminado: 30)");
